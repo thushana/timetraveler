@@ -1,0 +1,97 @@
+{
+  "routes": [
+    {
+      "route_name": "Target Run",
+      "created_at": "2025-01-12T17:11:41.296638",
+      "waypoints": [
+        {
+          "plus_code": "PPQR+8V",
+          "place_id": "ChIJm7F2UQSEj4ARSeNPlO18Yss",
+          "formatted_address": "152 Sweet Rd, Alameda, CA 94502, USA",
+          "latitude": 37.7383125,
+          "longitude": -122.2578125
+        },
+        {
+          "plus_code": "QQ52+4G",
+          "place_id": "ChIJC2CJVLuGj4ARlK_Wn1-4cEc",
+          "formatted_address": "Otis Dr & Park St, Alameda, CA 94501, USA",
+          "latitude": 37.7578125,
+          "longitude": -122.2486875
+        },
+        {
+          "plus_code": "QP9G+HV",
+          "place_id": "ChIJMSpy3DGBj4ARcIodBUFiMqE",
+          "formatted_address": "8th St & Portola Av, Alameda, CA 94501, USA",
+          "latitude": 37.7689375,
+          "longitude": -122.2728125
+        },
+        {
+          "plus_code": "QPH9+X5",
+          "place_id": "ChIJR_7sS9mAj4ARBU8T4yEpt-4",
+          "formatted_address": "501 Atlantic Ave, Alameda, CA 94501, USA",
+          "latitude": 37.7799375,
+          "longitude": -122.2820625
+        },
+        {
+          "plus_code": "QPQ9+GW",
+          "place_id": "ChIJOwp5iEaBj4ARZRjmiUzfyh8",
+          "formatted_address": "2700 5th St, Alameda, CA 94501, USA",
+          "latitude": 37.7888125,
+          "longitude": -122.2801875
+        }
+      ],
+      "original_url": "https://www.google.com/maps/place/Shoreline+Park/@37.7622754,-122.279488,14z/data=!4m44!1m37!4m36!1m6!1m2!1s0x808f80d8f2cf1595:0xdf3815440c2316a8!2sPPQR%2B8V,+Alameda,+CA!2m2!1d-122.2578125!2d37.7383125!1m6!1m2!1s0x808f80d8f2cf1595:0xa0535ce0470d94a0!2sQQ52%2B4G,+Alameda,+CA!2m2!1d-122.2486875!2d37.7578125!1m6!1m2!1s0x808f80d8f2cf1595:0xf8fd790e72f5df59!2sQP9G%2BHV,+Alameda,+CA!2m2!1d-122.2728125!2d37.7689375!1m6!1m2!1s0x808f80d8f2cf1595:0xec9c663130539b34!2sQPH9%2BX5,+Alameda,+CA!2m2!1d-122.2820625!2d37.7799375!1m6!1m2!1s0x808f80d8f2cf1595:0x1684cd7f70336f0a!2sQPQ9%2BGW,+Alameda,+CA!2m2!1d-122.2801875!2d37.7888125!3e0!3m5!1s0x808f84043e16cf93:0x7b079dc2c1863ff8!8m2!3d37.7382887!4d-122.2577644!16s%2Fg%2F1tq8jsss!5m1!1e1?entry=ttu&g_ep=EgoyMDI1MDEwOC4wIKXMDSoASAFQAw%3D%3D",
+      "route_description": "Furthest reach of Bay Farm, over Bay Farm Bridge, down Otis, and then on to Target"
+    },
+    {
+      "route_name": "Transcontinental Railroad",
+      "created_at": "2025-01-12T17:11:52.864449",
+      "waypoints": [
+        {
+          "plus_code": "QQFG+W9",
+          "place_id": "ChIJz4AExvSGj4ARvOzq5KnZgTw",
+          "formatted_address": "Fruitvale, 3401 E 12th St, Oakland, CA 94601, USA",
+          "latitude": 37.7748125,
+          "longitude": -122.2240625
+        },
+        {
+          "plus_code": "QQ85+R7",
+          "place_id": "ChIJv6XAdpWGj4ARLYtATaUEOKA",
+          "formatted_address": "2315 Lincoln Ave Unit 2, Alameda, CA 94501, USA",
+          "latitude": 37.7670625,
+          "longitude": -122.2418125
+        },
+        {
+          "plus_code": "QPGF+44",
+          "place_id": "ChIJPxBd0yeBj4ARIQOABo6mkfE",
+          "formatted_address": "Lincoln Av & Webster St, Alameda, CA 94501, USA",
+          "latitude": 37.7753125,
+          "longitude": -122.2771875
+        },
+        {
+          "plus_code": "QPJ5+37",
+          "place_id": "ChIJN7VQrmmBj4ARN4OovH__Qv0",
+          "formatted_address": "53 W Atlantic Ave, Alameda, CA 94501, USA",
+          "latitude": 37.7801875,
+          "longitude": -122.2918125
+        },
+        {
+          "plus_code": "QPJ2+27",
+          "place_id": "ChIJJ2HkI5OBj4ARByz4oyMtJcA",
+          "formatted_address": "Alameda Waterfront Park, 2151 Ferry Point, Alameda, CA 94501, USA",
+          "latitude": 37.7800625,
+          "longitude": -122.2993125
+        },
+        {
+          "plus_code": "QMPW+PR",
+          "place_id": "ChIJB-A5B_OAj4ARsljzBO-WG0E",
+          "formatted_address": "2 Saratoga St, Alameda, CA 94501, USA",
+          "latitude": 37.7868125,
+          "longitude": -122.3029375
+        }
+      ],
+      "original_url": "https://www.google.com/maps/place/Alameda+Waterfront+Park/@37.7786853,-122.303658,15.83z/data=!4m51!1m44!4m43!1m6!1m2!1s0x80857d8b28aaed03:0xdfdc5a060b97fbe9!2sQQFG%2BW9,+Oakland,+CA!2m2!1d-122.2240625!2d37.7748125!1m6!1m2!1s0x808f80d8f2cf1595:0x4f44ab6dc65761af!2sQQ85%2BR7,+Alameda,+CA!2m2!1d-122.2418125!2d37.7670625!1m6!1m2!1s0x808f80d8f2cf1595:0x9c5f520d9ac5b1d4!2sQPGF%2B44,+Alameda,+CA!2m2!1d-122.2771875!2d37.7753125!1m6!1m2!1s0x808f80d8f2cf1595:0xe3ac9b2019a56c1!2sQPJ5%2B37,+Alameda,+CA!2m2!1d-122.2918125!2d37.7801875!1m6!1m2!1s0x808f80d8f2cf1595:0xdc3b03b0873794d4!2sQPJ2%2B27,+Alameda,+CA!2m2!1d-122.2993125!2d37.7800625!1m6!1m2!1s0x808f80d8f2cf1595:0xa51943f2b82cf30e!2sQMPW%2BPR,+Alameda,+CA!2m2!1d-122.3029375!2d37.7868125!3e0!3m5!1s0x808f819323e46127:0xc0252d23a3f82c07!8m2!3d37.7801217!4d-122.2993004!16s%2Fg%2F11rtmr6ybq!5m1!1e1?entry=ttu&g_ep=EgoyMDI1MDEwOC4wIKXMDSoASAFQAw%3D%3D",
+      "route_description": "Fruitvale BART down the Frutivale Bridge and the historic path of the Transcontinal Railroad to the historic marker at the Alameda Point"
+    }
+  ]
+}
