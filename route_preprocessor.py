@@ -79,36 +79,66 @@ class RoutePreProcessor:
         
         return route_data
 
-    def save_route(self, route_data, filename=None):
-        """Save route data to JSON file."""
-        if filename is None:
-            # Create filename from route name
-            safe_name = re.sub(r'[^a-zA-Z0-9]', '_', route_data['route_name'].lower())
-            filename = f"route_{safe_name}.json"
-        
-        # Create any necessary directories in the path
-        os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else '.', exist_ok=True)
-        
+    def process_routes_file(self, routes_filename="routes.json", output_filename="routes_enriched.json"):
+        """Process all routes from routes.json and create enriched version."""
         try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(route_data, f, indent=2, ensure_ascii=False)
-        except IOError as e:
-            raise IOError(f"Error saving route data to {filename}: {str(e)}")
+            # Load routes file
+            with open(routes_filename, 'r', encoding='utf-8') as f:
+                routes_data = json.load(f)
+            
+            # Create enriched routes data structure
+            enriched_data = {
+                "routes": []
+            }
+            
+            # Process each route
+            for route in routes_data.get("routes", []):
+                try:
+                    print(f"\nProcessing route: {route['route_name']}")
+                    
+                    # Process the route and get enriched data
+                    route_data = self.process_route(route['route_url'], route['route_name'])
+                    
+                    # Add additional fields from original route data
+                    route_data['route_description'] = route.get('route_description', '')
+                    
+                    enriched_data["routes"].append(route_data)
+                    
+                except Exception as e:
+                    print(f"Error processing route '{route['route_name']}': {str(e)}")
+                    continue
+            
+            # Save enriched data
+            try:
+                with open(output_filename, 'w', encoding='utf-8') as f:
+                    json.dump(enriched_data, f, indent=2, ensure_ascii=False)
+                print(f"\nEnriched route data saved to {output_filename}")
+            except IOError as e:
+                raise IOError(f"Error saving enriched route data to {output_filename}: {str(e)}")
+            
+            return enriched_data
         
-        return filename
-    
-    def print_route_summary(self, route_data):
-        """Print a formatted summary of the route data."""
-        print("\nRoute summary:")
-        print(f"Route name: {route_data['route_name']}")
-        print(f"Created at: {route_data['created_at']}")
-        print(f"Number of waypoints: {len(route_data['waypoints'])}")
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Routes file {routes_filename} not found")
+        except json.JSONDecodeError:
+            raise ValueError(f"Invalid JSON in routes file {routes_filename}")
+
+    def print_routes_summary(self, routes_data):
+        """Print a formatted summary of all routes."""
+        print("\nRoutes summary:")
+        print(f"Total routes: {len(routes_data['routes'])}")
         
-        print("\nWaypoints:")
-        for i, waypoint in enumerate(route_data['waypoints'], 1):
-            print(f"\n{i}. {waypoint['formatted_address']}")
-            print(f"   Plus Code: {waypoint['plus_code']}")
-            print(f"   Coordinates: ({waypoint['latitude']}, {waypoint['longitude']})")
+        for route in routes_data['routes']:
+            print(f"\nRoute: {route['route_name']}")
+            print(f"Description: {route.get('route_description', 'No description')}")
+            print(f"Created at: {route['created_at']}")
+            print(f"Number of waypoints: {len(route['waypoints'])}")
+            
+            print("\nWaypoints:")
+            for i, waypoint in enumerate(route['waypoints'], 1):
+                print(f"\n  {i}. {waypoint['formatted_address']}")
+                print(f"     Plus Code: {waypoint['plus_code']}")
+                print(f"     Coordinates: ({waypoint['latitude']}, {waypoint['longitude']})")
 
     def print_json(self, route_data):
         """Print the route data as formatted JSON."""
@@ -116,35 +146,30 @@ class RoutePreProcessor:
         print(json.dumps(route_data, indent=2, ensure_ascii=False))
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python route_preprocessor.py <route_name> <google_maps_url> [--json]")
+    if len(sys.argv) < 2:
+        print("Usage: python route_preprocessor.py [--json]")
         sys.exit(1)
 
     api_key = os.getenv('GOOGLE_MAPS_API_KEY')
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
 
-    route_name = sys.argv[1]
-    maps_url = sys.argv[2]
     show_json = "--json" in sys.argv
 
     processor = RoutePreProcessor(api_key)
     
     try:
-        print(f"Processing route: {route_name}")
-        route_data = processor.process_route(maps_url, route_name)
+        # Process all routes
+        enriched_data = processor.process_routes_file()
         
-        # Save the route data
-        filename = processor.save_route(route_data)
-        print(f"Route data saved to {filename}")
-        
+        # Print output
         if show_json:
-            processor.print_json(route_data)
+            processor.print_json(enriched_data)
         else:
-            processor.print_route_summary(route_data)
+            processor.print_routes_summary(enriched_data)
         
     except Exception as e:
-        print(f"Error processing route: {str(e)}")
+        print(f"Error processing routes: {str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
