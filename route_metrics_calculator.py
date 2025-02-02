@@ -8,85 +8,69 @@ import googlemaps
 
 class RouteMetricsCalculator:
     def __init__(self, gmaps_client: googlemaps.Client, max_mode_workers: int = 40, debug: bool = False):
-        """Initialize the calculator with a Google Maps client."""
         self.gmaps = gmaps_client
         self.max_mode_workers = max_mode_workers
         self.debug = debug
 
     @staticmethod
-    def calculate_speed(distance: float, duration: float) -> Tuple[float, float]:
-        """Calculate speed in kph and mph."""
-        kph = (distance / 1000) / (duration / 3600)
-        mph = (distance / 1609.34) / (duration / 3600)
-        return kph, mph
+    def calculate_speed(distance_meters: float, duration_seconds: float) -> float:
+        """Calculate speed in kilometers per hour."""
+        return (distance_meters / 1000) / (duration_seconds / 3600)
 
     @staticmethod
     def calculate_route_metrics(route: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate metrics for a route."""
         total_duration = sum(leg.get('duration', {}).get('value', 0) for leg in route.get('legs', []))
         total_distance = sum(leg.get('distance', {}).get('value', 0) for leg in route.get('legs', []))
-        average_kph, average_mph = RouteMetricsCalculator.calculate_speed(total_distance, total_duration)
-        
-        hours, remainder = divmod(total_duration, 3600)
-        minutes, seconds = divmod(remainder, 60)
+        average_speed = RouteMetricsCalculator.calculate_speed(total_distance, total_duration)
         
         return {
-            'total_duration': total_duration,
-            'total_distance': total_distance,
-            'average_kph': average_kph,
-            'average_mph': average_mph,
-            'hours': int(hours),
-            'minutes': int(minutes),
-            'seconds': int(seconds)
+            'duration_seconds': total_duration,
+            'distance_meters': total_distance,
+            'speed_kph': average_speed
         }
 
     def calculate_mode_metrics(self, origin: str, destination: str, 
                              waypoint_ids: List[str], mode: str, 
-                             departure_time: datetime) -> Tuple[str, Dict[str, Any]]:
+                             departure_time: datetime, route_name: str) -> Tuple[str, Dict[str, Any]]:
         """Calculate metrics for a specific travel mode."""
         try:
             if self.debug:
-                print(f"\nCalculating {mode} route...")
+                print(f"Calculating {route_name} - {mode} {'(routed with waypoints)' if mode == 'driving' else '(point-to-point)'}...")
 
-            result = self.gmaps.directions(
-                origin,
-                destination,
-                waypoints=waypoint_ids if mode == 'driving' else None,
-                mode=mode,
-                departure_time=departure_time
-            )
+            directions_kwargs = {
+                'origin': origin,
+                'destination': destination,
+                'mode': mode,
+                'departure_time': departure_time,
+                'units': 'metric'
+            }
+            
+            # Only add waypoints for routed driving
+            if mode == 'driving' and waypoint_ids:
+                directions_kwargs['waypoints'] = waypoint_ids
+
+            result = self.gmaps.directions(**directions_kwargs)
             
             if result:
-                metrics = self.calculate_route_metrics(result[0])
+                route = result[0]
+                metrics = self.calculate_route_metrics(route)
                 leg_details = []
                 
-                for leg in result[0].get('legs', []):
+                for leg in route.get('legs', []):
                     leg_distance = leg.get('distance', {}).get('value', 0)
                     leg_duration = leg.get('duration', {}).get('value', 0)
                     leg_metrics = {
                         'start_address': leg.get('start_address'),
                         'end_address': leg.get('end_address'),
-                        'duration': leg.get('duration', {}).get('text'),
                         'duration_seconds': leg_duration,
-                        'distance': leg.get('distance', {}).get('text'),
-                        'distance_miles': leg_distance / 1609.34
+                        'distance_meters': leg_distance,
+                        'speed_kph': self.calculate_speed(leg_distance, leg_duration)
                     }
-                    
-                    if mode != 'transit':
-                        leg_kph, leg_mph = self.calculate_speed(leg_distance, leg_duration)
-                        leg_metrics.update({
-                            'speed_kph': leg_kph,
-                            'speed_mph': leg_mph
-                        })
-                    
                     leg_details.append(leg_metrics)
-                    
-                    if self.debug:
-                        print(f"\nLeg from {leg_metrics['start_address']} to {leg_metrics['end_address']}:")
-                        print(f"Time: {leg_metrics['duration']} ({leg_metrics['duration_seconds']} seconds)")
-                        print(f"Distance: {leg_metrics['distance']} ({leg_metrics['distance_miles']:.3f} miles)")
-                        if mode != 'transit':
-                            print(f"Speed: {leg_metrics['speed_kph']:.2f} kph ({leg_metrics['speed_mph']:.2f} mph)")
+                
+                if self.debug:
+                    print(f"Found {len(leg_details)} legs for {mode} route")
                 
                 return mode, {
                     'metrics': metrics,
@@ -105,16 +89,15 @@ class RouteMetricsCalculator:
     def process_route(self, route_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process a single route and calculate its metrics."""
         try:
+            route_name = route_data.get('route_name', 'Unnamed Route')
             if self.debug:
-                print(f"\nProcessing route: {route_data.get('route_name', 'Unnamed Route')}")
-                print(f"Description: {route_data.get('route_description', 'No description available')}")
+                print(f"\nProcessing route: {route_name}")
 
             route_metrics = {
                 'route_name': route_data.get('route_name', 'Unnamed Route'),
                 'route_description': route_data.get('route_description', 'No description available'),
                 'timestamp': datetime.now().isoformat(),
                 'modes': {},
-                'point_to_point': None,
                 'status': 'success'
             }
 
@@ -133,53 +116,54 @@ class RouteMetricsCalculator:
             waypoint_ids = [f"place_id:{pid}" for pid in place_ids[1:-1]]
             departure_time = datetime.now()
 
-            if self.debug:
-                print("\n=== Route Summary ===")
-
-            # Calculate routes for different modes in parallel
+            # Calculate standard point-to-point routes for each mode
             modes = ['driving', 'bicycling', 'walking', 'transit']
+            driving_routed_result = None  # Store the routed result separately
+            
             with ThreadPoolExecutor(max_workers=self.max_mode_workers) as executor:
                 future_to_mode = {
                     executor.submit(
                         self.calculate_mode_metrics,
                         origin,
                         destination,
-                        waypoint_ids,
+                        [] if mode != 'driving' else waypoint_ids,  # Only pass waypoints for driving
                         mode,
-                        departure_time
+                        departure_time,
+                        route_name
                     ): mode for mode in modes
                 }
                 
                 for future in as_completed(future_to_mode):
-                    mode, result = future.result()
-                    route_metrics['modes'][mode] = result
+                    mode = future_to_mode[future]
+                    mode_result = future.result()
                     
-                    if self.debug and result and 'metrics' in result:
-                        metrics = result['metrics']
-                        print(f"\nMode: {mode.capitalize()}")
-                        print(f"Total time: {metrics['hours']}h {metrics['minutes']}m {metrics['seconds']}s")
-                        print(f"Total time in seconds: {metrics['total_duration']} seconds")
-                        print(f"Total distance: {metrics['total_distance'] / 1000:.1f} km ({metrics['total_distance'] / 1609.34:.3f} miles)")
-                        print(f"Average speed: {metrics['average_kph']:.2f} kph ({metrics['average_mph']:.2f} mph)")
+                    if mode == 'driving':
+                        # Store the routed driving result separately
+                        driving_routed_result = mode_result[1]
+                        
+                        # Calculate point-to-point driving separately
+                        point_result = self.gmaps.directions(
+                            origin,
+                            destination,
+                            mode="driving",
+                            departure_time=departure_time,
+                            units='metric'
+                        )
+                        
+                        if point_result:
+                            route_metrics['modes'][mode] = {
+                                'metrics': self.calculate_route_metrics(point_result[0])
+                            }
+                    else:
+                        route_metrics['modes'][mode] = mode_result[1]
 
-            if self.debug:
-                print("\n=== Point-to-Point Summary ===")
-
-            # Calculate point-to-point metrics
-            point_result = self.gmaps.directions(
-                origin,
-                destination,
-                mode="driving",
-                departure_time=departure_time
-            )
-            
-            if point_result:
-                route_metrics['point_to_point'] = self.calculate_route_metrics(point_result[0])
+            # Add routed driving metrics separately
+            if driving_routed_result and 'metrics' in driving_routed_result:
+                route_metrics['driving_routed'] = driving_routed_result['metrics']
+                route_metrics['driving_routed_legs'] = driving_routed_result['leg_details']
+                
                 if self.debug:
-                    metrics = route_metrics['point_to_point']
-                    print(f"Point-to-point driving time: {metrics['hours']}h {metrics['minutes']}m {metrics['seconds']}s")
-                    print(f"Point-to-point driving distance: {metrics['total_distance'] / 1000:.1f} km ({metrics['total_distance'] / 1609.34:.3f} miles)")
-                    print(f"Point-to-point average driving speed: {metrics['average_kph']:.2f} kph ({metrics['average_mph']:.2f} mph)")
+                    print(f"Stored {len(driving_routed_result['leg_details'])} legs for routed driving")
 
             return route_metrics
 
