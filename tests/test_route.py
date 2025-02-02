@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
 import json
-import os
 from route import process_route, main
 
 # Sample test data moved to global scope for reuse

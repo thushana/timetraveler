@@ -11,7 +11,7 @@ import googlemaps
 # Application
 import keys
 
-class RoutePreProcessor:
+class RouteProcessor:
     def __init__(self, api_key):
         self.gmaps = googlemaps.Client(key=api_key)
     
@@ -162,7 +162,7 @@ def main():
 
     show_json = "--json" in sys.argv
 
-    processor = RoutePreProcessor(api_key)
+    processor = RouteProcessor(api_key)
     
     try:
         # Process all routes

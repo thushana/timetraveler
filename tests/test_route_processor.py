@@ -2,14 +2,13 @@ import pytest
 from unittest.mock import Mock, patch, mock_open
 import json
 import sys
-import importlib
-from route_preprocessor import RoutePreProcessor, main
+from route_processor import main
 from conftest import (
     SAMPLE_MAPS_URL, SAMPLE_PLUS_CODES, SAMPLE_REVERSE_GEOCODE,
     SAMPLE_PLACE_RESULT, SAMPLE_ROUTES_JSON, SAMPLE_ENRICHED_WAYPOINT
 )
 
-class TestRoutePreProcessor:
+class TestRouteProcessor:
     def test_extract_plus_codes(self, processor):
         """Test extraction of plus codes from URL"""
         result = processor.extract_plus_codes(SAMPLE_MAPS_URL)
@@ -144,7 +143,7 @@ class TestMain:
         """Test main function with --json flag"""
         with patch.object(sys, 'argv', ['script.py', '--json']), \
              patch('os.getenv', return_value='fake-api-key'), \
-             patch('route_preprocessor.RoutePreProcessor') as MockProcessor:
+             patch('route_processor.RouteProcessor') as MockProcessor:
             mock_processor = Mock()
             MockProcessor.return_value = mock_processor
             mock_processor.process_routes_file.return_value = {'test': 'data'}
@@ -156,7 +155,7 @@ class TestMain:
         """Test main function with default summary output"""
         with patch.object(sys, 'argv', ['script.py', '--summary']), \
              patch('os.getenv', return_value='fake-api-key'), \
-             patch('route_preprocessor.RoutePreProcessor') as MockProcessor:
+             patch('route_processor.RouteProcessor') as MockProcessor:
             mock_processor = Mock()
             MockProcessor.return_value = mock_processor
             mock_processor.process_routes_file.return_value = {'test': 'data'}

@@ -55,10 +55,10 @@ def mock_gmaps():
 
 @pytest.fixture
 def processor(mock_gmaps):
-    """Create a RoutePreProcessor instance with mock gmaps"""
-    from route_preprocessor import RoutePreProcessor
+    """Create a RouteProcessor instance with mock gmaps"""
+    from route_processor import RouteProcessor
     with patch('googlemaps.Client', return_value=mock_gmaps):
-        processor = RoutePreProcessor('fake-api-key')
+        processor = RouteProcessor('fake-api-key')
     return processor
 
 @pytest.fixture
