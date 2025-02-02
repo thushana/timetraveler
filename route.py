@@ -1,8 +1,13 @@
+# Standard Library
 import json
-import googlemaps
-import keys
 from datetime import datetime
 from typing import Dict, Any
+
+# Third-party
+import googlemaps
+
+# Application
+import keys
 
 
 def calculate_speed(distance: float, duration: float) -> tuple:

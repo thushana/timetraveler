@@ -1,9 +1,14 @@
-import googlemaps
-from datetime import datetime
-import re
-import urllib.parse
+# Standard Library
 import json
+import re
 import sys
+import urllib.parse
+from datetime import datetime
+
+# Third-party
+import googlemaps
+
+# Application
 import keys
 
 class RoutePreProcessor:
