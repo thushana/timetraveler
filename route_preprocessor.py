@@ -1,10 +1,10 @@
-import os
 import googlemaps
 from datetime import datetime
 import re
 import urllib.parse
 import json
 import sys
+import keys
 
 class RoutePreProcessor:
     def __init__(self, api_key):
@@ -150,7 +150,8 @@ def main():
         print("Usage: python route_preprocessor.py [--json]")
         sys.exit(1)
 
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    api_key = keys.get_google_maps_api_key()
+
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
 

@@ -1,9 +1,9 @@
-import os
 import json
 import googlemaps
+import keys
 from datetime import datetime
 from typing import Dict, Any
-from dotenv import load_dotenv
+
 
 def calculate_speed(distance: float, duration: float) -> tuple:
     """Calculate speed in kph and mph."""
@@ -111,10 +111,8 @@ def process_route(gmaps: googlemaps.Client, route_data: Dict[str, Any]) -> None:
 
 def main() -> None:
     """Main function to process all routes."""
-    # Load environment variables
-    load_dotenv()
-    
-    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    # Load environment variables    
+    api_key = keys.get_google_maps_api_key()
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
 
