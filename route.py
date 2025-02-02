@@ -1,50 +1,22 @@
 import os
+import json
 import googlemaps
 from datetime import datetime
-import re
-import urllib.parse
 from dotenv import load_dotenv
-load_dotenv()  # This loads the variables from .env
 
-api_key = os.getenv('GOOGLE_MAPS_API_KEY')
-if not api_key:
-    raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
-
-gmaps = googlemaps.Client(key=api_key)
-
-# URL from Google Maps
-maps_url = "https://www.google.com/maps/place/Shoreline+Park/@37.7622754,-122.279488,14z/data=!4m44!1m37!4m36!1m6!1m2!1s0x808f80d8f2cf1595:0xdf3815440c2316a8!2sPPQR%2B8V,+Alameda,+CA!2m2!1d-122.2578125!2d37.7383125!1m6!1m2!1s0x808f80d8f2cf1595:0xa0535ce0470d94a0!2sQQ52%2B4G,+Alameda,+CA!2m2!1d-122.2486875!2d37.7578125!1m6!1m2!1s0x808f80d8f2cf1595:0xf8fd790e72f5df59!2sQP9G%2BHV,+Alameda,+CA!2m2!1d-122.2728125!2d37.7689375!1m6!1m2!1s0x808f80d8f2cf1595:0xec9c663130539b34!2sQPH9%2BX5,+Alameda,+CA!2m2!1d-122.2820625!2d37.7799375!1m6!1m2!1s0x808f80d8f2cf1595:0x1684cd7f70336f0a!2sQPQ9%2BGW,+Alameda,+CA!2m2!1d-122.2801875!2d37.7888125"
-
-# Extract Plus Codes using regex
-decoded_url = urllib.parse.unquote(maps_url)
-
-# Extract plus codes and their locations
-matches = re.findall(r'!2s([A-Z0-9]{4,6}\+[A-Z0-9]{2,3}),\+([^!]+)', decoded_url)
-
-if not matches:
-    raise ValueError("No Plus Codes found in the URL")
-
-# Format plus codes with their locations
-plus_codes = [f"{code} {location}" for code, location in matches]
-print("Extracted Plus Codes with locations:", plus_codes)
-
-# Get place IDs for these plus codes
-place_ids = []
-print("\nFinding place IDs for Plus Codes:")
-for code in plus_codes:
-    result = gmaps.find_place(
-        code,
-        'textquery',
-        fields=['place_id', 'formatted_address', 'name']
-    )
-    if result['candidates']:
-        place_id = result['candidates'][0]['place_id']
-        place_ids.append(place_id)
-        print(f"\n{code}:")
-        print(f"Place ID: {place_id}")
-
-# Calculate route using these place IDs
-if place_ids:
+def process_route(gmaps, route_data):
+    """Process a single route and calculate its metrics."""
+    print(f"\nProcessing route: {route_data['route_name']}")
+    print(f"Description: {route_data['route_description']}")
+    
+    # Get place IDs from the waypoints
+    place_ids = [wp['place_id'] for wp in route_data['waypoints']]
+    
+    if not place_ids:
+        print("No place IDs found in route")
+        return
+    
+    # Calculate route using these place IDs
     origin = place_ids[0]
     destination = place_ids[-1]
     waypoints = [f"place_id:{pid}" for pid in place_ids[1:-1]]
@@ -81,3 +53,32 @@ if place_ids:
             print(f"Time: {leg['duration']['text']}")
             print(f"Time in seconds: {leg['duration']['value']} seconds")
             print(f"Distance: {leg['distance']['text']} ({leg_distance_miles:.3f} miles)")
+
+def main():
+    # Load environment variables
+    load_dotenv()
+    
+    api_key = os.getenv('GOOGLE_MAPS_API_KEY')
+    if not api_key:
+        raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
+
+    # Initialize Google Maps client
+    gmaps = googlemaps.Client(key=api_key)
+    
+    # Read the routes file
+    try:
+        with open('routes_enriched.json', 'r') as f:
+            routes_data = json.load(f)
+    except FileNotFoundError:
+        print("Error: routes_enriched.json file not found")
+        return
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format in routes_enriched.json")
+        return
+    
+    # Process each route
+    for route in routes_data['routes']:
+        process_route(gmaps, route)
+
+if __name__ == "__main__":
+    main()
