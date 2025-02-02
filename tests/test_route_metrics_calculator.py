@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 import json
-from route import process_route, main
+from route_metrics_calculator import process_route, main
 
 # Sample test data moved to global scope for reuse
 SAMPLE_ROUTE = {
@@ -147,20 +147,20 @@ def test_main_general_exception(capsys):
         assert "Error in main: Non-API key error" in captured.out
 
 def test_main_entry_point(monkeypatch):
-    import route
+    import route_metrics_calculator
     
     # Mock main function
     mock_main = Mock()
-    monkeypatch.setattr(route, 'main', mock_main)
+    monkeypatch.setattr(route_metrics_calculator, 'main', mock_main)
     
     # Call the entry point code directly
-    if route.__name__ == '__main__':
-        route.main()
+    if route_metrics_calculator.__name__ == '__main__':
+        route_metrics_calculator.main()
     
     # Now set it to __main__ and try again
-    monkeypatch.setattr(route, '__name__', '__main__')
-    if route.__name__ == '__main__':
-        route.main()
+    monkeypatch.setattr(route_metrics_calculator, '__name__', '__main__')
+    if route_metrics_calculator.__name__ == '__main__':
+        route_metrics_calculator.main()
         
     # Verify main was called exactly once
     assert mock_main.call_count == 1
