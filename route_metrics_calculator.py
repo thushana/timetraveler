@@ -30,13 +30,29 @@ class RouteMetricsCalculator:
             'speed_kph': average_speed
         }
 
+    def get_route_leg_details(self, route: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract leg details from a route."""
+        leg_details = []
+        for leg in route.get('legs', []):
+            leg_distance = leg.get('distance', {}).get('value', 0)
+            leg_duration = leg.get('duration', {}).get('value', 0)
+            leg_metrics = {
+                'start_address': leg.get('start_address'),
+                'end_address': leg.get('end_address'),
+                'duration_seconds': leg_duration,
+                'distance_meters': leg_distance,
+                'speed_kph': self.calculate_speed(leg_distance, leg_duration)
+            }
+            leg_details.append(leg_metrics)
+        return leg_details
+
     def calculate_mode_metrics(self, origin: str, destination: str, 
                              waypoint_ids: List[str], mode: str, 
-                             departure_time: datetime, route_name: str) -> Tuple[str, Dict[str, Any]]:
+                             departure_time: datetime, is_routed: bool = False) -> Dict[str, Any]:
         """Calculate metrics for a specific travel mode."""
         try:
             if self.debug:
-                print(f"Calculating {route_name} - {mode} {'(routed with waypoints)' if mode == 'driving' else '(point-to-point)'}...")
+                print(f"Calculating {mode} {'(routed)' if is_routed else '(direct)'} route...")
 
             directions_kwargs = {
                 'origin': origin,
@@ -46,45 +62,27 @@ class RouteMetricsCalculator:
                 'units': 'metric'
             }
             
-            # Only add waypoints for routed driving
-            if mode == 'driving' and waypoint_ids:
+            # Only add waypoints for routed paths
+            if is_routed and waypoint_ids:
                 directions_kwargs['waypoints'] = waypoint_ids
 
             result = self.gmaps.directions(**directions_kwargs)
             
             if result:
                 route = result[0]
-                metrics = self.calculate_route_metrics(route)
-                leg_details = []
-                
-                for leg in route.get('legs', []):
-                    leg_distance = leg.get('distance', {}).get('value', 0)
-                    leg_duration = leg.get('duration', {}).get('value', 0)
-                    leg_metrics = {
-                        'start_address': leg.get('start_address'),
-                        'end_address': leg.get('end_address'),
-                        'duration_seconds': leg_duration,
-                        'distance_meters': leg_distance,
-                        'speed_kph': self.calculate_speed(leg_distance, leg_duration)
-                    }
-                    leg_details.append(leg_metrics)
-                
-                if self.debug:
-                    print(f"Found {len(leg_details)} legs for {mode} route")
-                
-                return mode, {
-                    'metrics': metrics,
-                    'leg_details': leg_details
+                return {
+                    'metrics': self.calculate_route_metrics(route),
+                    'leg_details': self.get_route_leg_details(route)
                 }
             
             if self.debug:
-                print(f"No {mode} route found")
-            return mode, None
+                print(f"No route found for {mode} {'(routed)' if is_routed else '(direct)'}")
+            return None
 
         except Exception as e:
             if self.debug:
                 print(f"Error calculating {mode} route: {str(e)}")
-            return mode, {'error': str(e)}
+            return {'error': str(e)}
 
     def process_route(self, route_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process a single route and calculate its metrics."""
@@ -94,7 +92,7 @@ class RouteMetricsCalculator:
                 print(f"\nProcessing route: {route_name}")
 
             route_metrics = {
-                'route_name': route_data.get('route_name', 'Unnamed Route'),
+                'route_name': route_name,
                 'route_description': route_data.get('route_description', 'No description available'),
                 'timestamp': datetime.now().isoformat(),
                 'modes': {},
@@ -116,54 +114,27 @@ class RouteMetricsCalculator:
             waypoint_ids = [f"place_id:{pid}" for pid in place_ids[1:-1]]
             departure_time = datetime.now()
 
-            # Calculate standard point-to-point routes for each mode
+            # Calculate metrics for all modes
             modes = ['driving', 'bicycling', 'walking', 'transit']
-            driving_routed_result = None  # Store the routed result separately
             
-            with ThreadPoolExecutor(max_workers=self.max_mode_workers) as executor:
-                future_to_mode = {
-                    executor.submit(
-                        self.calculate_mode_metrics,
-                        origin,
-                        destination,
-                        [] if mode != 'driving' else waypoint_ids,  # Only pass waypoints for driving
-                        mode,
-                        departure_time,
-                        route_name
-                    ): mode for mode in modes
-                }
+            for mode in modes:
+                # Calculate direct route
+                direct_result = self.calculate_mode_metrics(
+                    origin, destination, [], mode, departure_time, is_routed=False
+                )
                 
-                for future in as_completed(future_to_mode):
-                    mode = future_to_mode[future]
-                    mode_result = future.result()
-                    
-                    if mode == 'driving':
-                        # Store the routed driving result separately
-                        driving_routed_result = mode_result[1]
-                        
-                        # Calculate point-to-point driving separately
-                        point_result = self.gmaps.directions(
-                            origin,
-                            destination,
-                            mode="driving",
-                            departure_time=departure_time,
-                            units='metric'
-                        )
-                        
-                        if point_result:
-                            route_metrics['modes'][mode] = {
-                                'metrics': self.calculate_route_metrics(point_result[0])
-                            }
-                    else:
-                        route_metrics['modes'][mode] = mode_result[1]
+                if direct_result:
+                    route_metrics['modes'][mode] = direct_result
 
-            # Add routed driving metrics separately
-            if driving_routed_result and 'metrics' in driving_routed_result:
-                route_metrics['driving_routed'] = driving_routed_result['metrics']
-                route_metrics['driving_routed_legs'] = driving_routed_result['leg_details']
-                
-                if self.debug:
-                    print(f"Stored {len(driving_routed_result['leg_details'])} legs for routed driving")
+                # Calculate routed version for driving
+                if mode == 'driving' and waypoint_ids:
+                    routed_result = self.calculate_mode_metrics(
+                        origin, destination, waypoint_ids, mode, 
+                        departure_time, is_routed=True
+                    )
+                    
+                    if routed_result:
+                        route_metrics['modes']['driving_routed'] = routed_result
 
             return route_metrics
 
@@ -171,7 +142,7 @@ class RouteMetricsCalculator:
             if self.debug:
                 print(f"Error processing route: {str(e)}")
             return {
-                'route_name': route_data.get('route_name', 'Unnamed Route'),
+                'route_name': route_name,
                 'status': 'error',
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()

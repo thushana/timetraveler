@@ -55,6 +55,30 @@ class RouteScheduler:
         """Convert kilometers per hour to miles per hour."""
         return kph * 0.621371
 
+    def print_mode_details(self, mode: str, mode_data: Dict[str, Any], indent: str = "") -> None:
+        """Print details for a specific travel mode."""
+        if not mode_data or 'metrics' not in mode_data:
+            return
+
+        metrics = mode_data['metrics']
+        print(f"\n{indent}{mode.upper()}:")
+        print(f"{indent}Duration: {self.format_duration(metrics['duration_seconds'])}")
+        print(f"{indent}Distance: {metrics['distance_meters']/1000:.1f} km ({self.meters_to_miles(metrics['distance_meters']):.1f} miles)")
+        if 'speed_kph' in metrics:
+            print(f"{indent}Average Speed: {metrics['speed_kph']:.1f} kph ({self.kph_to_mph(metrics['speed_kph']):.1f} mph)")
+
+        # Print leg details if available
+        if 'leg_details' in mode_data and len(mode_data['leg_details']) > 1:  # Only show if there's more than one leg
+            print(f"\n{indent}Detailed Leg Information:")
+            for i, leg in enumerate(mode_data['leg_details'], 1):
+                print(f"\n{indent}Leg {i}:")
+                print(f"{indent}From: {leg['start_address']}")
+                print(f"{indent}To: {leg['end_address']}")
+                print(f"{indent}Duration: {self.format_duration(leg['duration_seconds'])}")
+                print(f"{indent}Distance: {leg['distance_meters']/1000:.1f} km ({self.meters_to_miles(leg['distance_meters']):.1f} miles)")
+                if 'speed_kph' in leg:
+                    print(f"{indent}Speed: {leg['speed_kph']:.1f} kph ({self.kph_to_mph(leg['speed_kph']):.1f} mph)")
+
     def print_route_summary(self, route_metrics: Dict[str, Any]) -> None:
         """Print a detailed summary of route metrics including imperial conversions."""
         print("\n" + "="* 80)
@@ -65,52 +89,20 @@ class RouteScheduler:
         if self.debug:
             print("\nDebug: Available keys in route_metrics:", route_metrics.keys())
 
-        # Section 1: Point-to-point routes for all modes
-        print("\nPOINT-TO-POINT ROUTES:")
+        # Print all modes except driving_routed first
+        print("\nDIRECT ROUTES:")
         print("-" * 40)
-
-        if self.debug:
-            print("\nDebug: Available modes:", route_metrics['modes'].keys())
         
-        # Print each mode's point-to-point metrics
         for mode, data in route_metrics['modes'].items():
-            if data and 'metrics' in data:
-                metrics = data['metrics']
-                mode_display = mode.upper()
-                print(f"\n{mode_display}:")
-                print(f"Duration: {self.format_duration(metrics['duration_seconds'])}")
-                print(f"Distance: {metrics['distance_meters']/1000:.1f} km ({self.meters_to_miles(metrics['distance_meters']):.1f} miles)")
-                if 'speed_kph' in metrics:
-                    print(f"Average Speed: {metrics['speed_kph']:.1f} kph ({self.kph_to_mph(metrics['speed_kph']):.1f} mph)")
+            if mode != 'driving_routed':  # Skip driving_routed for now
+                self.print_mode_details(mode, data, indent="")
 
-        # Section 2: Routed driving with waypoints
-        if route_metrics.get('driving_routed'):
+        # Print driving_routed separately with more detailed information
+        if 'driving_routed' in route_metrics['modes']:
             print("\n" + "=" * 80)
             print("DRIVING (ROUTED WITH WAYPOINTS):")
             print("-" * 40)
-            
-            routed = route_metrics['driving_routed']
-            print("\nOverall Route Metrics:")
-            print(f"Duration: {self.format_duration(routed['duration_seconds'])}")
-            print(f"Distance: {routed['distance_meters']/1000:.1f} km ({self.meters_to_miles(routed['distance_meters']):.1f} miles)")
-            print(f"Average Speed: {routed['speed_kph']:.1f} kph ({self.kph_to_mph(routed['speed_kph']):.1f} mph)")
-
-            # Print detailed leg information for the routed path
-            if route_metrics.get('driving_routed_legs'):
-                if self.debug:
-                    print(f"\nDebug: Found {len(route_metrics['driving_routed_legs'])} legs")
-                
-                print("\nDetailed Leg Information:")
-                for i, leg in enumerate(route_metrics['driving_routed_legs'], 1):
-                    print(f"\nLeg {i}:")
-                    print(f"From: {leg['start_address']}")
-                    print(f"To: {leg['end_address']}")
-                    print(f"Duration: {self.format_duration(leg['duration_seconds'])}")
-                    print(f"Distance: {leg['distance_meters']/1000:.1f} km ({self.meters_to_miles(leg['distance_meters']):.1f} miles)")
-                    if 'speed_kph' in leg:
-                        print(f"Speed: {leg['speed_kph']:.1f} kph ({self.kph_to_mph(leg['speed_kph']):.1f} mph)")
-            elif self.debug:
-                print("\nDebug: No leg details found in route_metrics['driving_routed_legs']")
+            self.print_mode_details('driving_routed', route_metrics['modes']['driving_routed'], indent="")
 
         print("\n" + "=" * 80)
 
