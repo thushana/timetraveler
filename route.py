@@ -68,8 +68,7 @@ def process_route(gmaps: googlemaps.Client, route_data: Dict[str, Any]) -> None:
                 print(f"Total time: {metrics['hours']} hours, {metrics['minutes']} minutes, {metrics['seconds']} seconds")
                 print(f"Total time in seconds: {metrics['total_duration']} seconds")
                 print(f"Total distance: {metrics['total_distance'] / 1000:.1f} km ({metrics['total_distance'] / 1609.34:.3f} miles)")
-                if mode != 'transit':
-                    print(f"Average speed: {metrics['average_kph']:.2f} kph ({metrics['average_mph']:.2f} mph)")
+                print(f"Average speed: {metrics['average_kph']:.2f} kph ({metrics['average_mph']:.2f} mph)")
             else:
                 print(f"\nNo {mode} route found")
 
