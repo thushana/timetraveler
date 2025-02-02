@@ -70,8 +70,8 @@ def test_process_route_api_error(mock_gmaps, capsys):
     captured = capsys.readouterr()
     
     assert "Processing route: Test Route" in captured.out
-    assert "Route Summary" not in captured.out
-
+    assert "No driving route found" in captured.out
+    
 def test_main_success(tmp_path):
     """Test successful execution of main function"""
     test_route_data = {"routes": [SAMPLE_ROUTE]}
@@ -80,25 +80,22 @@ def test_main_success(tmp_path):
     
     with patch('os.path.isfile', return_value=True), \
          patch('builtins.open', return_value=test_file.open()), \
-         patch('route.load_dotenv'), \
-         patch('os.getenv', return_value='AIzaSyFake-API-Key-For-Testing'), \
+         patch('keys.get_google_maps_api_key', return_value='AIzaSyFake-API-Key-For-Testing'), \
          patch('googlemaps.Client') as mock_client:
         mock_client.return_value.directions.return_value = SAMPLE_DIRECTIONS_RESPONSE
         main()
-        mock_client.return_value.directions.assert_called_once()
+        assert mock_client.return_value.directions.call_count == 5
 
 def test_main_missing_api_key():
     """Test main function with missing API key"""
-    with patch('route.load_dotenv'), \
-         patch('os.getenv', return_value=None):
+    with patch('keys.get_google_maps_api_key', return_value=None):
         with pytest.raises(ValueError, match="GOOGLE_MAPS_API_KEY environment variable is not set"):
             main()
 
 def test_main_missing_file(capsys):
     """Test main function with missing routes file"""
     with patch('builtins.open', side_effect=FileNotFoundError), \
-         patch('route.load_dotenv'), \
-         patch('os.getenv', return_value='AIzaSyFake-API-Key-For-Testing'), \
+         patch('keys.get_google_maps_api_key', return_value='AIzaSyFake-API-Key-For-Testing'), \
          patch('googlemaps.Client') as mock_client:
         main()
         captured = capsys.readouterr()
@@ -112,8 +109,7 @@ def test_main_invalid_json(tmp_path, capsys):
     
     with patch('os.path.isfile', return_value=True), \
          patch('builtins.open', return_value=test_file.open()), \
-         patch('route.load_dotenv'), \
-         patch('os.getenv', return_value='AIzaSyFake-API-Key-For-Testing'), \
+         patch('keys.get_google_maps_api_key', return_value='AIzaSyFake-API-Key-For-Testing'), \
          patch('googlemaps.Client') as mock_client:
         main()
         captured = capsys.readouterr()
@@ -122,7 +118,6 @@ def test_main_invalid_json(tmp_path, capsys):
 
 def test_process_route_exception(mock_gmaps, capsys):
     """Test handling of unexpected exceptions during route processing"""
-    # Make the directions method raise an exception
     mock_gmaps.directions.side_effect = Exception("Test error")
     
     process_route(mock_gmaps, SAMPLE_ROUTE)
@@ -136,8 +131,7 @@ def test_file_read_general_exception(capsys):
     mock_open.side_effect = Exception("Generic file error")
     
     with patch('builtins.open', mock_open), \
-         patch('route.load_dotenv'), \
-         patch('os.getenv', return_value='AIzaSyFake-API-Key-For-Testing'):
+         patch('keys.get_google_maps_api_key', return_value='AIzaSyFake-API-Key-For-Testing'):
         main()
         
         captured = capsys.readouterr()
@@ -145,8 +139,7 @@ def test_file_read_general_exception(capsys):
 
 def test_main_general_exception(capsys):
     """Test handling of general exceptions in main"""
-    with patch('route.load_dotenv'), \
-         patch('os.getenv', return_value='AIzaSyFake-API-Key-For-Testing'), \
+    with patch('keys.get_google_maps_api_key', return_value='AIzaSyFake-API-Key-For-Testing'), \
          patch('googlemaps.Client', side_effect=Exception("Non-API key error")):
         main()
         
