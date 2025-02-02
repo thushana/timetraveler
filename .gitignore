@@ -170,3 +170,5 @@ timetraveler-env/bin/Activate.ps1
 timetraveler-env/bin/activate.fish
 timetraveler-env/bin/activate.csh
 timetraveler-env/bin/activate
+.env
+.DS_Store

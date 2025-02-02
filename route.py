@@ -3,6 +3,8 @@ import googlemaps
 from datetime import datetime
 import re
 import urllib.parse
+from dotenv import load_dotenv
+load_dotenv()  # This loads the variables from .env
 
 api_key = os.getenv('GOOGLE_MAPS_API_KEY')
 if not api_key:
