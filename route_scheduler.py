@@ -20,7 +20,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class RouteScheduler:
-    def __init__(self, input_file: str = 'routes_enriched.json', 
     def __init__(
         self,
         input_file: str = 'routes_enriched.json',
