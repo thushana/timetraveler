@@ -83,5 +83,5 @@ We carefully considered how to divide and track time in our system. After explor
 - Each poll of the travel time is slotted into one of these intervals to speed analysis.
 
 **References:**
-- [National Traffic Data Standards](https://www.fhwa.dot.gov/ohim/tvtw/natmec/00020.pdf)
-- [FHWA Traffic Monitoring Guide](https://www.fhwa.dot.gov/policyinformation/tmguide/2022_TMG_Updated_20241008.pdf)
+- [Travel Time Data Collection Handbook - US DOT](https://www.fhwa.dot.gov/ohim/tvtw/natmec/00020.pdf)
+- [Traffic Monitoring Guide – US DOT](https://www.fhwa.dot.gov/policyinformation/tmguide/2022_TMG_Updated_20241008.pdf)
