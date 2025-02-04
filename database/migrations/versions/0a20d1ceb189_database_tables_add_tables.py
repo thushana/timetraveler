@@ -1,10 +1,3 @@
-"""DATABASE TABLES - Add tables
-
-Revision ID: 0a20d1ceb189
-Revises: 88bdad858b50
-Create Date: 2025-02-03 20:26:29.012877
-
-"""
 from typing import Sequence, Union
 
 from alembic import op
@@ -25,7 +18,7 @@ def upgrade():
     )
 
     op.create_table(
-        'route_statuses',
+        'journey_statuses',
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('status', sa.String(50), unique=True, nullable=False)
     )
@@ -48,7 +41,7 @@ def upgrade():
         sa.Column('slot', sa.String(50), unique=True, nullable=False)
     )
 
-   # Insert initial data into lookup tables
+    # Insert initial data into lookup tables
     op.bulk_insert(
         sa.table('transit_modes', sa.column('mode', sa.String)),
         [
@@ -61,7 +54,7 @@ def upgrade():
     )
 
     op.bulk_insert(
-        sa.table('route_statuses', sa.column('status', sa.String)),
+        sa.table('journey_statuses', sa.column('status', sa.String)),
         [
             {'status': 'active'},
             {'status': 'error'},
@@ -95,7 +88,6 @@ def upgrade():
     )
 
     time_slots = []
-    periods = ['overnight', 'dawn', 'morning', 'afternoon', 'evening', 'night']
     for hour in range(24):
         for minute in [0, 15, 30, 45]:
             if hour < 4:
@@ -117,9 +109,9 @@ def upgrade():
         time_slots
     )
 
-    # Create routes table with enhanced geographic support
+    # Create journeys table with enhanced geographic support
     op.create_table(
-        'routes',
+        'journeys',
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('name', sa.String(255), nullable=False, unique=True),
         sa.Column('description', sa.Text),
@@ -127,7 +119,7 @@ def upgrade():
         sa.Column('state', sa.String(100), nullable=False),
         sa.Column('country', sa.String(100), nullable=False),
         sa.Column('timezone', sa.Text, nullable=False),
-        sa.Column('status_id', sa.Integer, sa.ForeignKey('route_statuses.id'), nullable=False, server_default='1'),
+        sa.Column('status_id', sa.Integer, sa.ForeignKey('journey_statuses.id'), nullable=False, server_default='1'),
         sa.Column('error_message', sa.Text),
         sa.Column('maps_url', sa.Text),
         sa.Column('raw_data', sa.dialects.postgresql.JSONB),
@@ -135,11 +127,11 @@ def upgrade():
         sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False)
     )
 
-    # Create route_waypoints table
+    # Create journey_waypoints table
     op.create_table(
-        'route_waypoints',
+        'journey_waypoints',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('route_id', sa.Integer, sa.ForeignKey('routes.id'), nullable=False),
+        sa.Column('journey_id', sa.Integer, sa.ForeignKey('journeys.id'), nullable=False),
         sa.Column('sequence_number', sa.SmallInteger, nullable=False),
         sa.Column('place_id', sa.String(255), nullable=False),
         sa.Column('plus_code', sa.String(20), nullable=False),
@@ -147,15 +139,15 @@ def upgrade():
         sa.Column('latitude', sa.Numeric(9, 7), nullable=False),
         sa.Column('longitude', sa.Numeric(10, 7), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint('route_id', 'sequence_number', name='uq_route_sequence'),
-        sa.UniqueConstraint('route_id', 'place_id', name='uq_route_place')
+        sa.UniqueConstraint('journey_id', 'sequence_number', name='uq_journey_sequence'),
+        sa.UniqueConstraint('journey_id', 'place_id', name='uq_journey_place')
     )
 
-    # Create route_processing_history table
+    # Create journey_processing_history table
     op.create_table(
-        'route_processing_history',
+        'journey_processing_history',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('route_id', sa.Integer, sa.ForeignKey('routes.id'), nullable=False),
+        sa.Column('journey_id', sa.Integer, sa.ForeignKey('journeys.id'), nullable=False),
         sa.Column('processor_version', sa.String(50)),
         sa.Column('success', sa.Boolean, nullable=False),
         sa.Column('error_message', sa.Text),
@@ -174,11 +166,11 @@ def upgrade():
         sa.UniqueConstraint('effective_date', name='uq_effective_date')
     )
 
-    # Create route_measurements table
+    # Create journey_measurements table
     op.create_table(
-        'route_measurements',
+        'journey_measurements',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('route_id', sa.Integer, sa.ForeignKey('routes.id'), nullable=False),
+        sa.Column('journey_id', sa.Integer, sa.ForeignKey('journeys.id'), nullable=False),
         sa.Column('transit_mode_id', sa.Integer, sa.ForeignKey('transit_modes.id'), nullable=False),
         sa.Column('timestamp', sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column('local_timestamp', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -189,29 +181,29 @@ def upgrade():
         sa.Column('speed_kph', sa.Numeric(5, 2), nullable=False),
         sa.Column('raw_response', sa.dialects.postgresql.JSONB),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint('route_id', 'transit_mode_id', 'timestamp', name='uq_route_measurement')
+        sa.UniqueConstraint('journey_id', 'transit_mode_id', 'timestamp', name='uq_journey_measurement')
     )
 
-    # Create route_legs table
+    # Create journey_legs table
     op.create_table(
-        'route_legs',
+        'journey_legs',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('route_measurement_id', sa.Integer, sa.ForeignKey('route_measurements.id'), nullable=False),
+        sa.Column('journey_measurement_id', sa.Integer, sa.ForeignKey('journey_measurements.id'), nullable=False),
         sa.Column('sequence_number', sa.SmallInteger, nullable=False),
-        sa.Column('start_waypoint_id', sa.Integer, sa.ForeignKey('route_waypoints.id'), nullable=False),
-        sa.Column('end_waypoint_id', sa.Integer, sa.ForeignKey('route_waypoints.id'), nullable=False),
+        sa.Column('start_waypoint_id', sa.Integer, sa.ForeignKey('journey_waypoints.id'), nullable=False),
+        sa.Column('end_waypoint_id', sa.Integer, sa.ForeignKey('journey_waypoints.id'), nullable=False),
         sa.Column('duration_seconds', sa.Integer, nullable=False),
         sa.Column('distance_meters', sa.Numeric(10, 2), nullable=False),
         sa.Column('speed_kph', sa.Numeric(5, 2), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint('route_measurement_id', 'sequence_number', name='uq_route_leg')
+        sa.UniqueConstraint('journey_measurement_id', 'sequence_number', name='uq_journey_leg')
     )
 
-    # Create route_time_slice_stats table
+    # Create journey_time_slice_stats table
     op.create_table(
-        'route_time_slice_stats',
+        'journey_time_slice_stats',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('route_id', sa.Integer, sa.ForeignKey('routes.id'), nullable=False),
+        sa.Column('journey_id', sa.Integer, sa.ForeignKey('journeys.id'), nullable=False),
         sa.Column('transit_mode_id', sa.Integer, sa.ForeignKey('transit_modes.id'), nullable=False),
         sa.Column('day_of_week_id', sa.Integer, sa.ForeignKey('days_of_week.id'), nullable=False),
         sa.Column('time_slot_id', sa.Integer, sa.ForeignKey('time_slots.id'), nullable=False),
@@ -229,20 +221,20 @@ def upgrade():
         sa.Column('p95_duration_seconds', sa.Integer, nullable=False),
         sa.Column('avg_speed_kph', sa.Numeric(5, 2), nullable=False),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint('route_id', 'transit_mode_id', 'day_of_week_id', 'time_slot_id', 'analysis_period', name='uq_route_time_slice_stats')
+        sa.UniqueConstraint('journey_id', 'transit_mode_id', 'day_of_week_id', 'time_slot_id', 'analysis_period', name='uq_journey_time_slice_stats')
     )
 
  
 def downgrade():
-    op.drop_table('route_time_slice_stats')
-    op.drop_table('route_legs')
-    op.drop_table('route_measurements')
+    op.drop_table('journey_time_slice_stats')
+    op.drop_table('journey_legs')
+    op.drop_table('journey_measurements')
     op.drop_table('mileage_rates')
-    op.drop_table('route_processing_history')
-    op.drop_table('route_waypoints')
-    op.drop_table('routes')
+    op.drop_table('journey_processing_history')
+    op.drop_table('journey_waypoints')
+    op.drop_table('journeys')
     op.drop_table('time_slots')
     op.drop_table('time_periods')
     op.drop_table('days_of_week')
-    op.drop_table('route_statuses')
+    op.drop_table('journey_statuses')
     op.drop_table('transit_modes')
