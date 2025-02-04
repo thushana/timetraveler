@@ -1,11 +1,14 @@
 from logging.config import fileConfig
-
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
 from alembic import context
+from dotenv import load_dotenv
+import os
 
-# this is the Alembic Config object, which provides
+# Load our environment variables at the start
+load_dotenv()
+
+# This is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
@@ -20,25 +23,19 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 target_metadata = None
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
+# Construct our database URL from environment variables
+def get_url():
+    return (f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@"
+            f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    
+    This mode is useful for producing SQL scripts that can be 
+    run later or in different environments.
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Use our environment-based URL instead of the config file
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -52,13 +49,16 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
+    
+    This is the typical way migrations run - directly executing
+    SQL commands against the database.
     """
+    # Override the SQLAlchemy URL with our environment-based one
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = get_url()
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
