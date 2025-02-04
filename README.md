@@ -1,4 +1,4 @@
-# TimeTraveler → ⏱️ 🚗 🚶‍♂️ 🚲 🚌 
+# TimeTraveler → ⏱️ 🚗 🚶‍♂️ 🚲 🚌
 
 TimeTraveler is a route traffic analysis system designed to study and compare traffic patterns on specific routes over time across different modes. It captures and analyzes route data at 15-minute intervals, to deliver insight on traffic patterns across days, weeks, months and years.
 
@@ -37,11 +37,31 @@ cp .env.example .env # Edit .env with your configuration settings
 python scripts/setup_db.py
 ```
 
-### Project Structure
-The project consists of several key components that work together to collect and analyze route data:
-- ```route_processor.py``` handles the core logic for processing route information
-- ```route_scheduler.py``` manages when and how often routes are analyzed
-- ```route_reporter.py``` prints out the collected data
-- ```route_cron.py``` automates regular data collection
+### Usage
 
-Database migrations are managed through Alembic, with configuration in the migrations directory.
+Common project tasks can be simplified using the provided `Makefile` commands:
+
+1. **Set up the environment and initialize the database:**
+   ```bash
+   make setup
+   ```
+
+2. **Run the journey cron script in debug mode:**
+   ```bash
+   make run
+   ```
+
+3. **Apply Alembic migrations manually:**
+   ```bash
+   make migrate
+   ```
+
+4. **Reset the database (drop and recreate):**
+   ```bash
+   make reset-db
+   ```
+
+5. **Clean the virtual environment:**
+   ```bash
+   make clean
+   ```
