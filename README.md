@@ -39,9 +39,9 @@ python scripts/setup_db.py
 
 ### Project Structure
 The project consists of several key components that work together to collect and analyze route data:
-```route_processor.py``` handles the core logic for processing route information
-```route_scheduler.py``` manages when and how often routes are analyzed
-```route_reporter.py``` prints out the collected data
-```route_cron.py``` automates regular data collection
+- ```route_processor.py``` handles the core logic for processing route information
+- ```route_scheduler.py``` manages when and how often routes are analyzed
+- ```route_reporter.py``` prints out the collected data
+- ```route_cron.py``` automates regular data collection
 
 Database migrations are managed through Alembic, with configuration in the migrations directory.
