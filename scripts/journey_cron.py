@@ -5,7 +5,7 @@ import sys
 import time
 from datetime import datetime
 
-from route_scheduler import RouteScheduler
+from core.journey.scheduler import RouteScheduler
 
 # Configure logging for Heroku environment
 logging.basicConfig(

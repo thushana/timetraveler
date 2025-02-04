@@ -9,9 +9,9 @@ from typing import Dict, List, Any
 import googlemaps
 
 # Application
-import keys
-from route_metrics_calculator import RouteMetricsCalculator
-from route_reporter import RouteReporter
+from core.config import settings as keys
+from core.journey.calculator import RouteMetricsCalculator
+from core.journey.reporter import RouteReporter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 class RouteScheduler:
     def __init__(
         self,
-        input_file: str = 'routes_enriched.json',
-        output_dir: str = 'route_metrics',
+        input_file: str = 'data/processed/journeys_enriched.json',
+        output_dir: str = 'data/metrics',
         max_workers: int = 4,
         debug: bool = False
     ):
@@ -72,9 +72,14 @@ class RouteScheduler:
         try:
             route_name = route_metrics['route_name'].replace(' ', '_').lower()
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{route_name}_{timestamp}.json"
             
-            output_path = self.output_dir / filename
+            # Create a date-based subdirectory
+            date_dir = datetime.now().strftime('%Y-%m-%d')
+            output_subdir = self.output_dir / date_dir
+            output_subdir.mkdir(exist_ok=True)
+            
+            filename = f"{route_name}_{timestamp}.json"
+            output_path = output_subdir / filename
             
             # Use atomic write operation
             temp_path = output_path.with_suffix('.tmp')
