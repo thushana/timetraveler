@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-
 import logging
 import sys
 import time
 from datetime import datetime
 
 from core.journey.scheduler import RouteScheduler
+
 
 # Configure logging for Heroku environment
 logging.basicConfig(

@@ -1,11 +1,15 @@
+# Standard Library
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 import logging
-import gc
 
+# Third-party
 import googlemaps
+
+# Application
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +24,22 @@ class RouteTask:
     route_name: str
 
 class RouteMetricsCalculator:
-    def __init__(self, gmaps_client: googlemaps.Client, max_workers: int = 4, debug: bool = False):
-        """Initialize calculator with a single thread pool optimized for Heroku Eco dyno."""
+    def __init__(
+        self,
+        gmaps_client: googlemaps.Client,
+        max_workers: int = None,
+        debug: bool = None
+    ):
+        """Initialize calculator with a Google Maps client instance.
+        
+        Args:
+            gmaps_client: Configured Google Maps client instance
+            max_workers: Optional override for thread pool size (default from settings)
+            debug: Optional override for debug mode (default from settings)
+        """
         self.gmaps = gmaps_client
-        self.max_workers = max_workers
-        self.debug = debug
+        self.max_workers = max_workers if max_workers is not None else settings.MAX_WORKERS
+        self.debug = debug if debug is not None else settings.DEBUG
         self._executor = None  # Lazy initialization of thread pool
         
     @property
@@ -41,7 +56,6 @@ class RouteMetricsCalculator:
         if self._executor:
             self._executor.shutdown(wait=True)
             self._executor = None
-        gc.collect()  # Force garbage collection
 
     @staticmethod
     def calculate_speed(distance_meters: float, duration_seconds: float) -> float:
@@ -124,14 +138,11 @@ class RouteMetricsCalculator:
             route_metrics = self.calculate_route_metrics(result[0])
             if self.debug:
                 logger.info(f"Calculated metrics for {task.mode}: {route_metrics}")
-            del result
             return route_metrics
 
         except Exception as e:
             logger.error(f"Error processing task: {str(e)}")
             return {'error': str(e)}
-        finally:
-            gc.collect()  # Force garbage collection after each task
 
     def calculate_route_metrics(self, route: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate metrics for a route."""
@@ -223,5 +234,3 @@ class RouteMetricsCalculator:
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
             }
-        finally:
-            gc.collect()  # Force garbage collection after processing route
