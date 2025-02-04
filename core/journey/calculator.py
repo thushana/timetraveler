@@ -14,16 +14,16 @@ from core.config import settings
 logger = logging.getLogger(__name__)
 
 @dataclass
-class RouteTask:
+class JourneyTask:
     origin: str
     destination: str
     waypoint_ids: List[str]
     mode: str
     departure_time: datetime
     is_routed: bool
-    route_name: str
+    journey_name: str
 
-class RouteMetricsCalculator:
+class JourneyMetricsCalculator:
     def __init__(
         self,
         gmaps_client: googlemaps.Client,
@@ -64,10 +64,10 @@ class RouteMetricsCalculator:
             return 0.0
         return (distance_meters / 1000) / (duration_seconds / 3600)
 
-    def create_route_tasks(self, route_data: Dict[str, Any]) -> List[RouteTask]:
-        """Create route tasks for parallel processing."""
+    def create_route_tasks(self, journey_data: Dict[str, Any]) -> List[JourneyTask]:
+        """Create journey tasks for parallel processing."""
         tasks = []
-        waypoints = route_data.get('waypoints', [])
+        waypoints = journey_data.get('waypoints', [])
         place_ids = [wp.get('place_id') for wp in waypoints if wp.get('place_id')]
         
         if not place_ids:
@@ -77,43 +77,43 @@ class RouteMetricsCalculator:
         destination = f"place_id:{place_ids[-1]}"
         waypoint_ids = [f"place_id:{pid}" for pid in place_ids[1:-1]]
         departure_time = datetime.now()
-        route_name = route_data.get('route_name', 'Unnamed Route')
+        journey_name = journey_data.get('journey_name', 'Unnamed Journey')
 
         # Create tasks for all modes
         modes = ['driving', 'bicycling', 'walking', 'transit']
         
         for mode in modes:
-            # Direct route task
-            tasks.append(RouteTask(
+            # Direct journey task
+            tasks.append(JourneyTask(
                 origin=origin,
                 destination=destination,
                 waypoint_ids=[],
                 mode=mode,
                 departure_time=departure_time,
                 is_routed=False,
-                route_name=route_name
+                journey_name=journey_name
             ))
 
-            # Add routed task only for driving mode with waypoints
+            # Add journeyd task only for driving mode with waypoints
             if mode == 'driving' and waypoint_ids:
-                tasks.append(RouteTask(
+                tasks.append(JourneyTask(
                     origin=origin,
                     destination=destination,
                     waypoint_ids=waypoint_ids,
                     mode=mode,
                     departure_time=departure_time,
                     is_routed=True,
-                    route_name=route_name
+                    journey_name=journey_name
                 ))
 
         return tasks
 
-    def process_task(self, task: RouteTask) -> Optional[Dict[str, Any]]:
-        """Process a single route task."""
+    def process_task(self, task: JourneyTask) -> Optional[Dict[str, Any]]:
+        """Process a single journey task."""
         try:
             if self.debug:
                 logger.info(f"Processing {task.mode} {'(routed)' if task.is_routed else '(direct)'} "
-                          f"for route: {task.route_name}")
+                          f"for journey: {task.journey_name}")
 
             directions_kwargs = {
                 'origin': task.origin,
@@ -130,23 +130,23 @@ class RouteMetricsCalculator:
             
             if not result:
                 if self.debug:
-                    logger.warning(f"No route found for {task.mode} "
+                    logger.warning(f"No journey found for {task.mode} "
                                  f"{'(routed)' if task.is_routed else '(direct)'}")
                 return None
 
-            # Process only the first route and clear result to free memory
-            route_metrics = self.calculate_route_metrics(result[0])
+            # Process only the first journey and clear result to free memory
+            journey_metrics = self.calculate_route_metrics(result[0])
             if self.debug:
-                logger.info(f"Calculated metrics for {task.mode}: {route_metrics}")
-            return route_metrics
+                logger.info(f"Calculated metrics for {task.mode}: {journey_metrics}")
+            return journey_metrics
 
         except Exception as e:
             logger.error(f"Error processing task: {str(e)}")
             return {'error': str(e)}
 
-    def calculate_route_metrics(self, route: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculate metrics for a route."""
-        legs = route.get('legs', [])
+    def calculate_route_metrics(self, journey: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate metrics for a journey."""
+        legs = journey.get('legs', [])
         total_duration = sum(leg.get('duration', {}).get('value', 0) for leg in legs)
         total_distance = sum(leg.get('distance', {}).get('value', 0) for leg in legs)
         
@@ -163,7 +163,7 @@ class RouteMetricsCalculator:
         }
 
     def get_route_leg_details(self, legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extract leg details from route legs."""
+        """Extract leg details from journey legs."""
         details = []
         for leg in legs:
             duration = leg.get('duration', {}).get('value', 0)
@@ -178,27 +178,27 @@ class RouteMetricsCalculator:
             })
         return details
 
-    def process_route(self, route_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a single route with all its modes using the thread pool."""
+    def process_route(self, journey_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process a single journey with all its modes using the thread pool."""
         try:
-            route_name = route_data.get('route_name', 'Unnamed Route')
+            journey_name = journey_data.get('journey_name', 'Unnamed Journey')
             if self.debug:
-                logger.info(f"Processing route: {route_name}")
+                logger.info(f"Processing journey: {journey_name}")
 
-            route_metrics = {
-                'route_name': route_name,
-                'route_description': route_data.get('route_description', 'No description available'),
+            journey_metrics = {
+                'journey_name': journey_name,
+                'journey_description': journey_data.get('journey_description', 'No description available'),
                 'timestamp': datetime.now().isoformat(),
                 'modes': {},
                 'status': 'success'
             }
 
             # Create and process tasks
-            tasks = self.create_route_tasks(route_data)
+            tasks = self.create_route_tasks(journey_data)
             if not tasks:
-                route_metrics['status'] = 'error'
-                route_metrics['error'] = 'No valid tasks created for route'
-                return route_metrics
+                journey_metrics['status'] = 'error'
+                journey_metrics['error'] = 'No valid tasks created for journey'
+                return journey_metrics
 
             # Process tasks in parallel
             futures = {
@@ -213,23 +213,23 @@ class RouteMetricsCalculator:
                     result = future.result()
                     if result:
                         mode_key = f"{task.mode}_routed" if task.is_routed else task.mode
-                        route_metrics['modes'][mode_key] = result
+                        journey_metrics['modes'][mode_key] = result
                         if self.debug:
-                            logger.info(f"Added {mode_key} metrics to route")
+                            logger.info(f"Added {mode_key} metrics to journey")
                 except Exception as e:
-                    logger.error(f"Error processing {task.mode} route: {str(e)}")
+                    logger.error(f"Error processing {task.mode} journey: {str(e)}")
                 finally:
                     # Clear the future to free memory
                     future.cancel()
 
             if self.debug:
-                logger.info(f"Final route_metrics: {route_metrics}")
-            return route_metrics
+                logger.info(f"Final journey_metrics: {journey_metrics}")
+            return journey_metrics
 
         except Exception as e:
-            logger.error(f"Error processing route: {str(e)}")
+            logger.error(f"Error processing journey: {str(e)}")
             return {
-                'route_name': route_name,
+                'journey_name': journey_name,
                 'status': 'error',
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()

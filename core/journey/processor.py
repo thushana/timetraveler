@@ -15,7 +15,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class RouteProcessor:
+class JourneyProcessor:
     def __init__(
         self,
         gmaps_client: googlemaps.Client,
@@ -74,10 +74,10 @@ class RouteProcessor:
             'longitude': lng
         }
 
-    def process_route(self, maps_url: str, route_name: str) -> Dict[str, Any]:
-        """Process entire route and create JSON output."""
+    def process_route(self, maps_url: str, journey_name: str) -> Dict[str, Any]:
+        """Process entire journey and create JSON output."""
         if self.debug:
-            logger.info(f"Processing route: {route_name}")
+            logger.info(f"Processing journey: {journey_name}")
             
         # Extract Plus Codes
         waypoints = self.extract_plus_codes(maps_url)
@@ -92,64 +92,64 @@ class RouteProcessor:
                 logger.error(f"Error processing waypoint {waypoint}: {str(e)}")
                 continue
 
-        # Create route data structure
-        route_data = {
-            'route_name': route_name,
+        # Create journey data structure
+        journey_data = {
+            'journey_name': journey_name,
             'created_at': datetime.now().isoformat(),
             'waypoints': enriched_waypoints,
             'original_url': maps_url
         }
         
         if self.debug:
-            logger.info(f"Completed processing route: {route_name}")
+            logger.info(f"Completed processing journey: {journey_name}")
             
-        return route_data
+        return journey_data
 
     def process_routes_file(
         self,
-        routes_filename: Path = None,
+        journeys_filename: Path = None,
         output_filename: Path = None
     ) -> Dict[str, Any]:
-        """Process all routes from routes.json and create enriched version."""
-        routes_filename = routes_filename or settings.RAW_JOURNEYS_PATH
+        """Process all journeys from journeys.json and create enriched version."""
+        journeys_filename = journeys_filename or settings.RAW_JOURNEYS_PATH
         output_filename = output_filename or settings.PROCESSED_JOURNEYS_PATH
 
         if self.debug:
-            logger.info(f"Processing routes from {routes_filename}")
+            logger.info(f"Processing journeys from {journeys_filename}")
             logger.info(f"Output will be saved to {output_filename}")
 
         try:
             # Ensure output directory exists
             output_filename.parent.mkdir(parents=True, exist_ok=True)
             
-            # Load routes file
-            if not routes_filename.exists():
-                raise FileNotFoundError(f"Routes file not found: {routes_filename}")
+            # Load journeys file
+            if not journeys_filename.exists():
+                raise FileNotFoundError(f"Journeys file not found: {journeys_filename}")
                 
-            with routes_filename.open('r', encoding='utf-8') as f:
-                routes_data = json.load(f)
+            with journeys_filename.open('r', encoding='utf-8') as f:
+                journeys_data = json.load(f)
             
-            # Create enriched routes data structure
+            # Create enriched journeys data structure
             enriched_data = {
-                "routes": []
+                "journeys": []
             }
             
-            # Process each route
-            for route in routes_data.get("routes", []):
+            # Process each journey
+            for journey in journeys_data.get("journeys", []):
                 try:
                     if self.debug:
-                        logger.info(f"\nProcessing route: {route['route_name']}")
+                        logger.info(f"\nProcessing journey: {journey['journey_name']}")
                     
-                    # Process the route and get enriched data
-                    route_data = self.process_route(route['route_url'], route['route_name'])
+                    # Process the journey and get enriched data
+                    journey_data = self.process_route(journey['journey_url'], journey['journey_name'])
                     
-                    # Add additional fields from original route data
-                    route_data['route_description'] = route.get('route_description', '')
+                    # Add additional fields from original journey data
+                    journey_data['journey_description'] = journey.get('journey_description', '')
                     
-                    enriched_data["routes"].append(route_data)
+                    enriched_data["journeys"].append(journey_data)
                     
                 except Exception as e:
-                    logger.error(f"Error processing route '{route['route_name']}': {str(e)}")
+                    logger.error(f"Error processing journey '{journey['journey_name']}': {str(e)}")
                     continue
             
             # Save enriched data
@@ -157,33 +157,33 @@ class RouteProcessor:
                 with output_filename.open('w', encoding='utf-8') as f:
                     json.dump(enriched_data, f, indent=2, ensure_ascii=False)
                 if self.debug:
-                    logger.info(f"Enriched route data saved to {output_filename}")
+                    logger.info(f"Enriched journey data saved to {output_filename}")
             except IOError as e:
-                raise IOError(f"Error saving enriched route data to {output_filename}: {str(e)}")
+                raise IOError(f"Error saving enriched journey data to {output_filename}: {str(e)}")
             
             return enriched_data
         
         except json.JSONDecodeError:
-            raise ValueError(f"Invalid JSON in routes file {routes_filename}")
+            raise ValueError(f"Invalid JSON in journeys file {journeys_filename}")
 
-    def print_routes_summary(self, routes_data: Dict[str, Any]) -> None:
-        """Print a formatted summary of all routes."""
+    def print_routes_summary(self, journeys_data: Dict[str, Any]) -> None:
+        """Print a formatted summary of all journeys."""
         print("\nRoutes summary:")
-        print(f"Total routes: {len(routes_data['routes'])}")
+        print(f"Total journeys: {len(journeys_data['journeys'])}")
         
-        for route in routes_data['routes']:
-            print(f"\nRoute: {route['route_name']}")
-            print(f"Description: {route.get('route_description', 'No description')}")
-            print(f"Created at: {route['created_at']}")
-            print(f"Number of waypoints: {len(route['waypoints'])}")
+        for journey in journeys_data['journeys']:
+            print(f"\nRoute: {journey['journey_name']}")
+            print(f"Description: {journey.get('journey_description', 'No description')}")
+            print(f"Created at: {journey['created_at']}")
+            print(f"Number of waypoints: {len(journey['waypoints'])}")
             
             print("\nWaypoints:")
-            for i, waypoint in enumerate(route['waypoints'], 1):
+            for i, waypoint in enumerate(journey['waypoints'], 1):
                 print(f"\n  {i}. {waypoint['formatted_address']}")
                 print(f"     Plus Code: {waypoint['plus_code']}")
                 print(f"     Coordinates: ({waypoint['latitude']}, {waypoint['longitude']})")
 
-    def print_json(self, route_data: Dict[str, Any]) -> None:
-        """Print the route data as formatted JSON."""
+    def print_json(self, journey_data: Dict[str, Any]) -> None:
+        """Print the journey data as formatted JSON."""
         print("\nJSON Output:")
-        print(json.dumps(route_data, indent=2, ensure_ascii=False))
+        print(json.dumps(journey_data, indent=2, ensure_ascii=False))

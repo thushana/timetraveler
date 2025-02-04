@@ -38,8 +38,8 @@ def get_google_maps_api_key() -> str:
         raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
     return api_key
 
-def get_metrics_path(route_name: str) -> Path:
-    """Get the path for storing metrics for a specific route."""
+def get_metrics_path(journey_name: str) -> Path:
+    """Get the path for storing metrics for a specific journey."""
     # Create a directory for today's date
     today = datetime.now().strftime('%Y-%m-%d')
     metrics_dir = METRICS_DATA_DIR / today
@@ -47,7 +47,7 @@ def get_metrics_path(route_name: str) -> Path:
     
     # Create filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{route_name.lower().replace(' ', '_')}_{timestamp}.json"
+    filename = f"{journey_name.lower().replace(' ', '_')}_{timestamp}.json"
     
     return metrics_dir / filename
 

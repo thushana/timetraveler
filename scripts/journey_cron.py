@@ -4,7 +4,7 @@ import sys
 import time
 from datetime import datetime
 
-from core.journey.scheduler import RouteScheduler
+from core.journey.scheduler import JourneyScheduler
 
 
 # Configure logging for Heroku environment
@@ -41,18 +41,18 @@ def main() -> None:
     start_datetime = datetime.now()
     
     try:
-        logger.info(f"Starting route metrics calculation job at {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+        logger.info(f"Starting journey metrics calculation job at {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         
         # Get debug mode from command line argument
         debug_mode = '--debug' in sys.argv
         
         # Initialize scheduler with Heroku Eco dyno optimized settings
-        scheduler = RouteScheduler(
+        scheduler = JourneyScheduler(
             max_workers=4,  # Optimized for Heroku Eco dyno
             debug=debug_mode
         )
         
-        # Process routes
+        # Process journeys
         scheduler.process_all_routes()
         
         # Calculate and log metrics
@@ -60,7 +60,7 @@ def main() -> None:
         run_time = end_time - start_time
         end_datetime = datetime.now()
         
-        logger.info("Successfully completed route metrics calculation job")
+        logger.info("Successfully completed journey metrics calculation job")
         logger.info(f"Total run time: {format_time(run_time)}")
         logger.info(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         logger.info(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
@@ -73,7 +73,7 @@ def main() -> None:
         end_time = time.perf_counter()
         run_time = end_time - start_time
         
-        logger.error(f"Critical error in route metrics calculation job: {str(e)}")
+        logger.error(f"Critical error in journey metrics calculation job: {str(e)}")
         logger.error(f"Failed after running for: {format_time(run_time)}")
         sys.exit(1)
         

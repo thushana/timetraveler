@@ -7,7 +7,7 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class RouteReporter:
+class JourneyReporter:
     def __init__(self, debug: bool = None):
         """Initialize reporter with optional debug override.
         
@@ -77,44 +77,44 @@ class RouteReporter:
                 if 'speed_kph' in leg:
                     print(f"{indent}Speed: {leg['speed_kph']:.1f} kph ({self.kph_to_mph(leg['speed_kph']):.1f} mph)")
 
-    def print_route_summary(self, route_metrics: Dict[str, Any]) -> None:
-        """Print a detailed summary of route metrics including imperial conversions."""
+    def print_route_summary(self, journey_metrics: Dict[str, Any]) -> None:
+        """Print a detailed summary of journey metrics including imperial conversions."""
         if self.debug:
-            logger.info(f"Printing summary for route: {route_metrics['route_name']}")
+            logger.info(f"Printing summary for journey: {journey_metrics['journey_name']}")
 
         print("\n" + "="* 80)
-        print(f"Route: {route_metrics['route_name']}")
-        print(f"Description: {route_metrics['route_description']}")
+        print(f"Journey: {journey_metrics['journey_name']}")
+        print(f"Description: {journey_metrics['journey_description']}")
         print("=" * 80)
 
         if self.debug:
-            logger.info("Available keys in route_metrics: %s", route_metrics.keys())
+            logger.info("Available keys in journey_metrics: %s", journey_metrics.keys())
 
         # Print all modes except driving_routed first
         print("\n📍 DIRECT ROUTES:")
         print("-" * 40)
         
-        for mode, data in route_metrics['modes'].items():
+        for mode, data in journey_metrics['modes'].items():
             if mode != 'driving_routed':  # Skip driving_routed for now
                 self.print_mode_details(mode, data, indent="")
 
         # Print driving_routed separately with more detailed information
-        if 'driving_routed' in route_metrics['modes']:
+        if 'driving_routed' in journey_metrics['modes']:
             print("\n" + "=" * 80)
             print("🛣️ DRIVING (ROUTED WITH WAYPOINTS):")
             print("-" * 40)
-            self.print_mode_details('driving_routed', route_metrics['modes']['driving_routed'], indent="")
+            self.print_mode_details('driving_routed', journey_metrics['modes']['driving_routed'], indent="")
 
         print("\n" + "=" * 80)
 
     def print_batch_summary(self, completed_routes: List[Dict[str, Any]]) -> None:
-        """Print summaries for a batch of completed routes."""
+        """Print summaries for a batch of completed journeys."""
         if not completed_routes:
-            logger.warning("No routes to summarize")
+            logger.warning("No journeys to summarize")
             return
             
         if self.debug:
-            logger.info(f"Printing summaries for {len(completed_routes)} routes")
+            logger.info(f"Printing summaries for {len(completed_routes)} journeys")
             
-        for route_metrics in completed_routes:
-            self.print_route_summary(route_metrics)
+        for journey_metrics in completed_routes:
+            self.print_route_summary(journey_metrics)
