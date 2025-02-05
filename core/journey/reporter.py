@@ -59,7 +59,9 @@ class JourneyReporter:
 
         emoji = self.get_mode_emoji(mode)
         print(f"\n{indent}{emoji} {mode.upper()}:")
-        print(f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}")
+        print(
+            f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}"
+        )
         print(
             f"{indent}Distance: {float(measurement.distance_meters)/1000:.1f} km ({self.meters_to_miles(float(measurement.distance_meters)):.1f} miles)"
         )

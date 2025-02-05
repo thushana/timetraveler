@@ -8,9 +8,8 @@ from typing import Any, Dict, List, Optional
 
 import googlemaps
 import pytz
-
-from sqlalchemy.orm import Session
 from sqlalchemy import Column
+from sqlalchemy.orm import Session
 
 from database.models.journey import Journey
 from database.models.waypoint import Waypoint
@@ -177,7 +176,9 @@ class JourneyProcessor:
 
         return journey
 
-    def process_routes_file(self, journeys_filename: Optional[Path] = None) -> List[Journey]:
+    def process_routes_file(
+        self, journeys_filename: Optional[Path] = None
+    ) -> List[Journey]:
         if self.debug:
             logger.info(f"Processing journeys from {journeys_filename}")
 
