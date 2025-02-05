@@ -29,8 +29,8 @@ class JourneyMetricsCalculator:
     def __init__(
         self,
         gmaps_client: googlemaps.Client,
-        max_workers: int = None,
-        debug: bool = None,
+        max_workers: Optional[int] = None,
+        debug: Optional[bool] = None,
     ):
         self.gmaps = gmaps_client
         self.max_workers = (
@@ -40,15 +40,20 @@ class JourneyMetricsCalculator:
         self._executor = None
 
     @property
-    def thread_pool(self):
+    def thread_pool(self) -> ThreadPoolExecutor:
         if self._executor is None:
             self._executor = ThreadPoolExecutor(max_workers=self.max_workers)
         return self._executor
 
-    def __enter__(self):
+    def __enter__(self) -> "JourneyMetricsCalculator":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[type],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[Any],
+    ) -> None:
         if self._executor:
             self._executor.shutdown(wait=True)
             self._executor = None
@@ -60,7 +65,7 @@ class JourneyMetricsCalculator:
         return (distance_meters / 1000) / (duration_seconds / 3600)
 
     def create_route_tasks(self, journey: Journey) -> List[JourneyTask]:
-        tasks = []
+        tasks: List[JourneyTask] = []
         waypoints = journey.waypoints
         place_ids = [wp.place_id for wp in waypoints if wp.place_id]
 
@@ -175,7 +180,7 @@ class JourneyMetricsCalculator:
             if self.debug:
                 logger.info(f"Processing journey: {journey.name}")
 
-            journey_metrics = {
+            journey_metrics: Dict[str, Any] = {
                 "journey_name": journey.name,
                 "journey_description": journey.description
                 or "No description available",
@@ -203,8 +208,8 @@ class JourneyMetricsCalculator:
                             f"{task.mode}_routed" if task.is_routed else task.mode
                         )
                         journey_metrics["modes"][mode_key] = result
-                        if self.debug:
-                            logger.info(f"Added {mode_key} metrics to journey")
+                        if isinstance(journey_metrics["modes"], dict):
+                            journey_metrics["modes"][mode_key] = result
                 except Exception as e:
                     logger.error(f"Error processing {task.mode} journey: {str(e)}")
                 finally:

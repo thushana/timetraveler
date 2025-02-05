@@ -1,10 +1,9 @@
 import logging
 from datetime import datetime
-from typing import Any, cast, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import googlemaps
-from sqlalchemy import and_
-from sqlalchemy import Column
+from sqlalchemy import Column, and_
 from sqlalchemy.orm import Session
 
 from core.config import settings
