@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "timetraveler"
+version = "0.1"
+description = """
+TimeTraveler is a route traffic analysis system designed to study and compare 
+traffic patterns on specific routes over time across different modes. It captures 
+and analyzes route data at 15-minute intervals, to deliver insight on traffic 
+patterns across days, weeks, months and years.
+"""
+authors = [
+    { name="Thushan Amarasiriwardena", email="timetraveler@thushan.net" }
+]
+dependencies = [
+    "sqlalchemy",
+    "googlemaps", 
+    "python-dotenv",
+    "psycopg2-binary",
+    "pytz",
+    "alembic",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "database*"]

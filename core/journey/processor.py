@@ -1,4 +1,3 @@
-# Standard Library
 import json
 import re
 import urllib.parse
@@ -6,32 +5,27 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List
-
-# Third-party
+import pytz
 import googlemaps
+from sqlalchemy.orm import Session
 
-# Application
-from core.config import settings
+from database.models.journey import Journey
+from database.models.waypoint import Waypoint
 
 logger = logging.getLogger(__name__)
 
 class JourneyProcessor:
     def __init__(
         self,
+        db: Session,
         gmaps_client: googlemaps.Client,
         debug: bool = None
     ):
-        """Initialize processor with a Google Maps client instance.
-        
-        Args:
-            gmaps_client: Configured Google Maps client instance
-            debug: Optional override for debug mode (default from settings)
-        """
+        self.db = db
         self.gmaps = gmaps_client
-        self.debug = debug if debug is not None else settings.DEBUG
+        self.debug = debug if debug is not None else False
     
     def extract_plus_codes(self, url: str) -> List[Dict[str, str]]:
-        """Extract Plus Codes and their locations from Google Maps URL."""
         decoded_url = urllib.parse.unquote(url)
         matches = re.findall(r'!2s([A-Z0-9]{4,6}\+[A-Z0-9]{2,3}),\+([^!]+)', decoded_url)
         if not matches:
@@ -39,11 +33,8 @@ class JourneyProcessor:
         return [{'plus_code': code, 'location': location} for code, location in matches]
 
     def enrich_waypoint_data(self, plus_code_with_location: Dict[str, str]) -> Dict[str, Any]:
-        """Get place details for a Plus Code."""
-        # First get the Plus Code location details to get accurate coordinates
         full_code = f"{plus_code_with_location['plus_code']} {plus_code_with_location['location']}"
         
-        # Get coordinates for the Plus Code
         place_result = self.gmaps.find_place(
             full_code,
             'textquery',
@@ -53,137 +44,158 @@ class JourneyProcessor:
         if not place_result['candidates']:
             raise ValueError(f"Could not find coordinates for {full_code}")
         
-        # Get the coordinates
         lat = place_result['candidates'][0]['geometry']['location']['lat']
         lng = place_result['candidates'][0]['geometry']['location']['lng']
         
-        # Use reverse geocoding to get the actual place details
+        # Get timezone from Google Maps API
+        timezone_result = self.gmaps.timezone((lat, lng))
+        if not timezone_result or 'timeZoneId' not in timezone_result:
+            raise ValueError(f"Could not determine timezone for coordinates {lat}, {lng}")
+        
+        timezone_str = timezone_result['timeZoneId']
+        
         reverse_geocode = self.gmaps.reverse_geocode((lat, lng))
         
         if not reverse_geocode:
             raise ValueError(f"Could not find place details for coordinates {lat}, {lng}")
         
-        # Find the most specific result (usually the first one)
         place_details = reverse_geocode[0]
+        address_components = place_details.get('address_components', [])
+        
+        city = next((comp['long_name'] for comp in address_components 
+                    if 'locality' in comp['types']), None)
+        state = next((comp['long_name'] for comp in address_components 
+                     if 'administrative_area_level_1' in comp['types']), None)
+        country = next((comp['long_name'] for comp in address_components 
+                       if 'country' in comp['types']), None)
         
         return {
             'plus_code': plus_code_with_location['plus_code'],
             'place_id': place_details['place_id'],
             'formatted_address': place_details.get('formatted_address', ''),
             'latitude': lat,
-            'longitude': lng
+            'longitude': lng,
+            'city': city,
+            'state': state,
+            'country': country,
+            'timezone': timezone_str
         }
 
-    def process_route(self, maps_url: str, journey_name: str) -> Dict[str, Any]:
-        """Process entire journey and create JSON output."""
+    def process_route(self, maps_url: str, journey_name: str, description: str = None) -> Journey:
         if self.debug:
             logger.info(f"Processing journey: {journey_name}")
-            
-        # Extract Plus Codes
-        waypoints = self.extract_plus_codes(maps_url)
+
+        waypoints_data = self.extract_plus_codes(maps_url)
+        now = datetime.now(pytz.UTC)
+
+        # Check if journey already exists
+        existing_journey = self.db.query(Journey).filter_by(name=journey_name).first()
         
-        # Enrich each waypoint with place details
-        enriched_waypoints = []
-        for waypoint in waypoints:
+        if existing_journey:
+            logger.info(f"Journey '{journey_name}' already exists. Updating details.")
+            journey = existing_journey
+            journey.description = description or journey.description
+            journey.updated_at = now
+
+            # Explicitly delete existing waypoints before adding new ones
+            self.db.query(Waypoint).filter(Waypoint.journey_id == journey.id).delete(synchronize_session=False)
+            self.db.flush()
+        else:
+            # Get first waypoint data for journey location
+            first_waypoint = self.enrich_waypoint_data(waypoints_data[0])
+
+            # Create new journey record
+            journey = Journey(
+                name=journey_name,
+                description=description,
+                maps_url=maps_url,
+                created_at=now,
+                updated_at=now,
+                raw_data={'url': maps_url},
+                status_id=1,
+                city=first_waypoint['city'],
+                state=first_waypoint['state'],
+                country=first_waypoint['country'],
+                timezone=first_waypoint['timezone']
+            )
+            self.db.add(journey)
+
+        # Process waypoints
+        for idx, waypoint_data in enumerate(waypoints_data, 1):
             try:
-                enriched_data = self.enrich_waypoint_data(waypoint)
-                enriched_waypoints.append(enriched_data)
+                enriched_data = self.enrich_waypoint_data(waypoint_data)
+
+                waypoint = Waypoint(
+                    sequence_number=idx,
+                    journey_id=journey.id,  # Ensure waypoint is linked to the journey
+                    place_id=enriched_data['place_id'],
+                    plus_code=enriched_data['plus_code'],
+                    formatted_address=enriched_data['formatted_address'],
+                    latitude=enriched_data['latitude'],
+                    longitude=enriched_data['longitude'],
+                    created_at=now
+                )
+                journey.waypoints.append(waypoint)
+
             except Exception as e:
-                logger.error(f"Error processing waypoint {waypoint}: {str(e)}")
+                logger.error(f"Error processing waypoint {waypoint_data}: {str(e)}")
                 continue
 
-        # Create journey data structure
-        journey_data = {
-            'journey_name': journey_name,
-            'created_at': datetime.now().isoformat(),
-            'waypoints': enriched_waypoints,
-            'original_url': maps_url
-        }
-        
-        if self.debug:
-            logger.info(f"Completed processing journey: {journey_name}")
-            
-        return journey_data
+        try:
+            self.db.commit()
+            if self.debug:
+                logger.info(f"Journey '{journey_name}' updated successfully in database.")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Database error updating journey '{journey_name}': {str(e)}")
+            raise
 
-    def process_routes_file(
-        self,
-        journeys_filename: Path = None,
-        output_filename: Path = None
-    ) -> Dict[str, Any]:
-        """Process all journeys from journeys.json and create enriched version."""
-        journeys_filename = journeys_filename or settings.RAW_JOURNEYS_PATH
-        output_filename = output_filename or settings.PROCESSED_JOURNEYS_PATH
+        return journey
 
+    def process_routes_file(self, journeys_filename: Path = None) -> List[Journey]:
         if self.debug:
             logger.info(f"Processing journeys from {journeys_filename}")
-            logger.info(f"Output will be saved to {output_filename}")
-
+        
         try:
-            # Ensure output directory exists
-            output_filename.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Load journeys file
             if not journeys_filename.exists():
                 raise FileNotFoundError(f"Journeys file not found: {journeys_filename}")
                 
             with journeys_filename.open('r', encoding='utf-8') as f:
                 journeys_data = json.load(f)
             
-            # Create enriched journeys data structure
-            enriched_data = {
-                "journeys": []
-            }
+            processed_journeys = []
             
-            # Process each journey
             for journey in journeys_data.get("journeys", []):
                 try:
                     if self.debug:
-                        logger.info(f"\nProcessing journey: {journey['journey_name']}")
+                        logger.info(f"\nProcessing journey: {journey['route_name']}")
                     
-                    # Process the journey and get enriched data
-                    journey_data = self.process_route(journey['journey_url'], journey['journey_name'])
-                    
-                    # Add additional fields from original journey data
-                    journey_data['journey_description'] = journey.get('journey_description', '')
-                    
-                    enriched_data["journeys"].append(journey_data)
+                    processed_journey = self.process_route(
+                        journey['route_url'], 
+                        journey['route_name'],
+                        journey.get('route_description')
+                    )
+                    processed_journeys.append(processed_journey)
                     
                 except Exception as e:
-                    logger.error(f"Error processing journey '{journey['journey_name']}': {str(e)}")
+                    logger.error(f"Error processing journey '{journey['route_name']}': {str(e)}")
                     continue
             
-            # Save enriched data
-            try:
-                with output_filename.open('w', encoding='utf-8') as f:
-                    json.dump(enriched_data, f, indent=2, ensure_ascii=False)
-                if self.debug:
-                    logger.info(f"Enriched journey data saved to {output_filename}")
-            except IOError as e:
-                raise IOError(f"Error saving enriched journey data to {output_filename}: {str(e)}")
+            return processed_journeys
             
-            return enriched_data
-        
         except json.JSONDecodeError:
             raise ValueError(f"Invalid JSON in journeys file {journeys_filename}")
 
-    def print_routes_summary(self, journeys_data: Dict[str, Any]) -> None:
-        """Print a formatted summary of all journeys."""
-        print("\nRoutes summary:")
-        print(f"Total journeys: {len(journeys_data['journeys'])}")
+    def print_journey_summary(self, journey: Journey) -> None:
+        print(f"\nRoute: {journey.name}")
+        print(f"Description: {journey.description or 'No description'}")
+        print(f"Location: {journey.city}, {journey.state}, {journey.country}")
+        print(f"Timezone: {journey.timezone}")
+        print(f"Created at: {journey.created_at}")
+        print(f"Number of waypoints: {len(journey.waypoints)}")
         
-        for journey in journeys_data['journeys']:
-            print(f"\nRoute: {journey['journey_name']}")
-            print(f"Description: {journey.get('journey_description', 'No description')}")
-            print(f"Created at: {journey['created_at']}")
-            print(f"Number of waypoints: {len(journey['waypoints'])}")
-            
-            print("\nWaypoints:")
-            for i, waypoint in enumerate(journey['waypoints'], 1):
-                print(f"\n  {i}. {waypoint['formatted_address']}")
-                print(f"     Plus Code: {waypoint['plus_code']}")
-                print(f"     Coordinates: ({waypoint['latitude']}, {waypoint['longitude']})")
-
-    def print_json(self, journey_data: Dict[str, Any]) -> None:
-        """Print the journey data as formatted JSON."""
-        print("\nJSON Output:")
-        print(json.dumps(journey_data, indent=2, ensure_ascii=False))
+        print("\nWaypoints:")
+        for waypoint in sorted(journey.waypoints, key=lambda w: w.sequence_number):
+            print(f"\n  {waypoint.sequence_number}. {waypoint.formatted_address}")
+            print(f"     Plus Code: {waypoint.plus_code}")
+            print(f"     Coordinates: ({waypoint.latitude}, {waypoint.longitude})")
