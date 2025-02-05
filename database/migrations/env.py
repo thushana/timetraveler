@@ -3,6 +3,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 from dotenv import load_dotenv
+from database.models.base import Base
 import os
 
 # Load our environment variables at the start
@@ -21,7 +22,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata  # This enables Alembic to detect schema changes
 
 # Construct our database URL from environment variables
 def get_url():
