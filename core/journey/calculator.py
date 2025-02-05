@@ -12,6 +12,7 @@ from database.models.journey_leg import JourneyLeg
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class JourneyTask:
     origin: str
@@ -22,18 +23,21 @@ class JourneyTask:
     is_routed: bool
     journey: Journey
 
+
 class JourneyMetricsCalculator:
     def __init__(
         self,
         gmaps_client: googlemaps.Client,
         max_workers: int = None,
-        debug: bool = None
+        debug: bool = None,
     ):
         self.gmaps = gmaps_client
-        self.max_workers = max_workers if max_workers is not None else settings.MAX_WORKERS
+        self.max_workers = (
+            max_workers if max_workers is not None else settings.MAX_WORKERS
+        )
         self.debug = debug if debug is not None else settings.DEBUG
         self._executor = None
-        
+
     @property
     def thread_pool(self):
         if self._executor is None:
@@ -58,7 +62,7 @@ class JourneyMetricsCalculator:
         tasks = []
         waypoints = journey.waypoints
         place_ids = [wp.place_id for wp in waypoints if wp.place_id]
-        
+
         if not place_ids:
             return tasks
 
@@ -67,51 +71,57 @@ class JourneyMetricsCalculator:
         waypoint_ids = [f"place_id:{pid}" for pid in place_ids[1:-1]]
         departure_time = datetime.now()
 
-        modes = ['driving', 'bicycling', 'walking', 'transit']
-        
-        for mode in modes:
-            tasks.append(JourneyTask(
-                origin=origin,
-                destination=destination,
-                waypoint_ids=[],
-                mode=mode,
-                departure_time=departure_time,
-                is_routed=False,
-                journey=journey
-            ))
+        modes = ["driving", "bicycling", "walking", "transit"]
 
-            if mode == 'driving' and waypoint_ids:
-                tasks.append(JourneyTask(
+        for mode in modes:
+            tasks.append(
+                JourneyTask(
                     origin=origin,
                     destination=destination,
-                    waypoint_ids=waypoint_ids,
+                    waypoint_ids=[],
                     mode=mode,
                     departure_time=departure_time,
-                    is_routed=True,
-                    journey=journey
-                ))
+                    is_routed=False,
+                    journey=journey,
+                )
+            )
+
+            if mode == "driving" and waypoint_ids:
+                tasks.append(
+                    JourneyTask(
+                        origin=origin,
+                        destination=destination,
+                        waypoint_ids=waypoint_ids,
+                        mode=mode,
+                        departure_time=departure_time,
+                        is_routed=True,
+                        journey=journey,
+                    )
+                )
 
         return tasks
 
     def process_task(self, task: JourneyTask) -> Optional[Dict[str, Any]]:
         try:
             if self.debug:
-                logger.info(f"Processing {task.mode} {'(routed)' if task.is_routed else '(direct)'} "
-                          f"for journey: {task.journey.name}")
+                logger.info(
+                    f"Processing {task.mode} {'(routed)' if task.is_routed else '(direct)'} "
+                    f"for journey: {task.journey.name}"
+                )
 
             directions_kwargs = {
-                'origin': task.origin,
-                'destination': task.destination,
-                'mode': task.mode,
-                'departure_time': task.departure_time,
-                'units': 'metric'
+                "origin": task.origin,
+                "destination": task.destination,
+                "mode": task.mode,
+                "departure_time": task.departure_time,
+                "units": "metric",
             }
 
             if task.is_routed and task.waypoint_ids:
-                directions_kwargs['waypoints'] = task.waypoint_ids
+                directions_kwargs["waypoints"] = task.waypoint_ids
 
             result = self.gmaps.directions(**directions_kwargs)
-            
+
             if not result:
                 if self.debug:
                     logger.warning(f"No journey found for {task.mode}")
@@ -124,37 +134,39 @@ class JourneyMetricsCalculator:
 
         except Exception as e:
             logger.error(f"Error processing task: {str(e)}")
-            return {'error': str(e)}
+            return {"error": str(e)}
 
     def calculate_route_metrics(self, journey: Dict[str, Any]) -> Dict[str, Any]:
-        legs = journey.get('legs', [])
-        total_duration = sum(leg.get('duration', {}).get('value', 0) for leg in legs)
-        total_distance = sum(leg.get('distance', {}).get('value', 0) for leg in legs)
-        
+        legs = journey.get("legs", [])
+        total_duration = sum(leg.get("duration", {}).get("value", 0) for leg in legs)
+        total_distance = sum(leg.get("distance", {}).get("value", 0) for leg in legs)
+
         leg_details = self.get_route_leg_details(legs)
-        
+
         return {
-            'metrics': {
-                'duration_seconds': total_duration,
-                'distance_meters': total_distance,
-                'speed_kph': self.calculate_speed(total_distance, total_duration)
+            "metrics": {
+                "duration_seconds": total_duration,
+                "distance_meters": total_distance,
+                "speed_kph": self.calculate_speed(total_distance, total_duration),
             },
-            'leg_details': leg_details
+            "leg_details": leg_details,
         }
 
     def get_route_leg_details(self, legs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         details = []
         for leg in legs:
-            duration = leg.get('duration', {}).get('value', 0)
-            distance = leg.get('distance', {}).get('value', 0)
-            
-            details.append({
-                'start_address': leg.get('start_address'),
-                'end_address': leg.get('end_address'),
-                'duration_seconds': duration,
-                'distance_meters': distance,
-                'speed_kph': self.calculate_speed(distance, duration)
-            })
+            duration = leg.get("duration", {}).get("value", 0)
+            distance = leg.get("distance", {}).get("value", 0)
+
+            details.append(
+                {
+                    "start_address": leg.get("start_address"),
+                    "end_address": leg.get("end_address"),
+                    "duration_seconds": duration,
+                    "distance_meters": distance,
+                    "speed_kph": self.calculate_speed(distance, duration),
+                }
+            )
         return details
 
     def process_route(self, journey: Journey) -> Dict[str, Any]:
@@ -163,22 +175,22 @@ class JourneyMetricsCalculator:
                 logger.info(f"Processing journey: {journey.name}")
 
             journey_metrics = {
-                'journey_name': journey.name,
-                'journey_description': journey.description or 'No description available',
-                'timestamp': datetime.now().isoformat(),
-                'modes': {},
-                'status': 'success'
+                "journey_name": journey.name,
+                "journey_description": journey.description
+                or "No description available",
+                "timestamp": datetime.now().isoformat(),
+                "modes": {},
+                "status": "success",
             }
 
             tasks = self.create_route_tasks(journey)
             if not tasks:
-                journey_metrics['status'] = 'error'
-                journey_metrics['error'] = 'No valid tasks created for journey'
+                journey_metrics["status"] = "error"
+                journey_metrics["error"] = "No valid tasks created for journey"
                 return journey_metrics
 
             futures = {
-                self.thread_pool.submit(self.process_task, task): task 
-                for task in tasks
+                self.thread_pool.submit(self.process_task, task): task for task in tasks
             }
 
             for future in as_completed(futures):
@@ -186,8 +198,10 @@ class JourneyMetricsCalculator:
                 try:
                     result = future.result()
                     if result:
-                        mode_key = f"{task.mode}_routed" if task.is_routed else task.mode
-                        journey_metrics['modes'][mode_key] = result
+                        mode_key = (
+                            f"{task.mode}_routed" if task.is_routed else task.mode
+                        )
+                        journey_metrics["modes"][mode_key] = result
                         if self.debug:
                             logger.info(f"Added {mode_key} metrics to journey")
                 except Exception as e:
@@ -202,8 +216,8 @@ class JourneyMetricsCalculator:
         except Exception as e:
             logger.error(f"Error processing journey: {str(e)}")
             return {
-                'journey_name': journey.name,
-                'status': 'error',
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                "journey_name": journey.name,
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
             }

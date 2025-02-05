@@ -1,12 +1,22 @@
-from sqlalchemy import Column, Integer, String, Text, Numeric, ForeignKey, SmallInteger, DateTime
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    Numeric,
+    ForeignKey,
+    SmallInteger,
+    DateTime,
+)
 from sqlalchemy.orm import relationship
 from database.models.base import Base
 
+
 class Waypoint(Base):
-    __tablename__ = 'journey_waypoints'
+    __tablename__ = "journey_waypoints"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    journey_id = Column(Integer, ForeignKey('journeys.id'), nullable=False)
+    journey_id = Column(Integer, ForeignKey("journeys.id"), nullable=False)
     sequence_number = Column(SmallInteger, nullable=False)
     place_id = Column(String, nullable=True)
     plus_code = Column(String, nullable=True)
@@ -15,4 +25,4 @@ class Waypoint(Base):
     longitude = Column(Numeric, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
-    journey = relationship('Journey', back_populates='waypoints')
+    journey = relationship("Journey", back_populates="waypoints")

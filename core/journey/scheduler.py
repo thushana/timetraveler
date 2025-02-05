@@ -19,13 +19,12 @@ from database.models.day_of_week import DayOfWeek
 
 logger = logging.getLogger(__name__)
 
+
 class JourneyScheduler:
-    def __init__(
-        self,
-        max_workers: int = None,
-        debug: bool = None
-    ):
-        self.max_workers = max_workers if max_workers is not None else settings.MAX_WORKERS
+    def __init__(self, max_workers: int = None, debug: bool = None):
+        self.max_workers = (
+            max_workers if max_workers is not None else settings.MAX_WORKERS
+        )
         self.debug = debug if debug is not None else settings.DEBUG
         self.completed_routes = []
 
@@ -33,19 +32,21 @@ class JourneyScheduler:
         self.gmaps = googlemaps.Client(key=api_key)
 
         self.calculator = JourneyMetricsCalculator(
-            self.gmaps,
-            max_workers=self.max_workers,
-            debug=self.debug
+            self.gmaps, max_workers=self.max_workers, debug=self.debug
         )
         self.reporter = JourneyReporter(debug=self.debug)
 
     def load_active_journeys(self, db: Session) -> List[Journey]:
-        active_journeys = db.query(Journey).filter(
-            and_(
-                Journey.status_id == 1,  # Active status
-                Journey.waypoints.any()  # Has waypoints
+        active_journeys = (
+            db.query(Journey)
+            .filter(
+                and_(
+                    Journey.status_id == 1,  # Active status
+                    Journey.waypoints.any(),  # Has waypoints
+                )
             )
-        ).all()
+            .all()
+        )
 
         if not active_journeys:
             logger.warning("No active journeys found")
@@ -57,13 +58,17 @@ class JourneyScheduler:
 
     def get_transit_mode_id(self, db: Session, mode: str) -> int:
         mode_key = mode.lower()
-        if mode_key == 'driving_routed':
-            mode_key = 'driving'
+        if mode_key == "driving_routed":
+            mode_key = "driving"
 
         mode_record = db.query(TransitMode).filter(TransitMode.mode == mode_key).first()
         if not mode_record:
-            logger.warning(f"Transit mode {mode_key} not found, using default mode 'driving'")
-            mode_record = db.query(TransitMode).filter(TransitMode.mode == 'driving').first()
+            logger.warning(
+                f"Transit mode {mode_key} not found, using default mode 'driving'"
+            )
+            mode_record = (
+                db.query(TransitMode).filter(TransitMode.mode == "driving").first()
+            )
 
         return mode_record.id if mode_record else 1
 
@@ -73,17 +78,17 @@ class JourneyScheduler:
         slot_key = f"{hour:02d}{minute:02d}"
 
         if hour < 4:
-            period = 'overnight'
+            period = "overnight"
         elif hour < 8:
-            period = 'dawn'
+            period = "dawn"
         elif hour < 12:
-            period = 'morning'
+            period = "morning"
         elif hour < 16:
-            period = 'afternoon'
+            period = "afternoon"
         elif hour < 20:
-            period = 'evening'
+            period = "evening"
         else:
-            period = 'night'
+            period = "night"
 
         slot_key = f"{slot_key}_{period}"
         slot = db.query(TimeSlot).filter(TimeSlot.slot == slot_key).first()
@@ -98,23 +103,29 @@ class JourneyScheduler:
                 return wp.id
         return journey.waypoints[0].id  # Fallback to first waypoint
 
-    def save_journey_metrics(self, db: Session, journey: Journey, metrics: Dict[str, Any]) -> None:
+    def save_journey_metrics(
+        self, db: Session, journey: Journey, metrics: Dict[str, Any]
+    ) -> None:
         try:
             now = datetime.now()
 
-            for mode, mode_data in metrics['modes'].items():
+            for mode, mode_data in metrics["modes"].items():
                 transit_mode_id = self.get_transit_mode_id(db, mode)
-                existing = db.query(JourneyMeasurement).filter(
-                    JourneyMeasurement.journey_id == journey.id,
-                    JourneyMeasurement.transit_mode_id == transit_mode_id
-                ).first()
+                existing = (
+                    db.query(JourneyMeasurement)
+                    .filter(
+                        JourneyMeasurement.journey_id == journey.id,
+                        JourneyMeasurement.transit_mode_id == transit_mode_id,
+                    )
+                    .first()
+                )
 
                 if existing:
                     existing.timestamp = now
                     existing.local_timestamp = now
-                    existing.duration_seconds = mode_data['metrics']['duration_seconds']
-                    existing.distance_meters = mode_data['metrics']['distance_meters']
-                    existing.speed_kph = mode_data['metrics']['speed_kph']
+                    existing.duration_seconds = mode_data["metrics"]["duration_seconds"]
+                    existing.distance_meters = mode_data["metrics"]["distance_meters"]
+                    existing.speed_kph = mode_data["metrics"]["speed_kph"]
                     existing.raw_response = mode_data
                 else:
                     measurement = JourneyMeasurement(
@@ -124,33 +135,45 @@ class JourneyScheduler:
                         local_timestamp=now,
                         day_of_week_id=now.isoweekday(),
                         time_slot_id=self.get_time_slot_id(db, now),
-                        duration_seconds=mode_data['metrics']['duration_seconds'],
-                        distance_meters=mode_data['metrics']['distance_meters'],
-                        speed_kph=mode_data['metrics']['speed_kph'],
+                        duration_seconds=mode_data["metrics"]["duration_seconds"],
+                        distance_meters=mode_data["metrics"]["distance_meters"],
+                        speed_kph=mode_data["metrics"]["speed_kph"],
                         raw_response=mode_data,
-                        created_at=now
+                        created_at=now,
                     )
                     db.add(measurement)
 
                 db.flush()
 
-                if 'leg_details' in mode_data:
-                    for seq, leg in enumerate(mode_data['leg_details'], 1):
-                        existing_leg = db.query(JourneyLeg).filter_by(
-                            journey_measurement_id=existing.id if existing else measurement.id,
-                            sequence_number=seq
-                        ).first()
+                if "leg_details" in mode_data:
+                    for seq, leg in enumerate(mode_data["leg_details"], 1):
+                        existing_leg = (
+                            db.query(JourneyLeg)
+                            .filter_by(
+                                journey_measurement_id=(
+                                    existing.id if existing else measurement.id
+                                ),
+                                sequence_number=seq,
+                            )
+                            .first()
+                        )
 
                         if not existing_leg:
                             journey_leg = JourneyLeg(
-                                journey_measurement_id=existing.id if existing else measurement.id,
+                                journey_measurement_id=(
+                                    existing.id if existing else measurement.id
+                                ),
                                 sequence_number=seq,
-                                start_waypoint_id=self.get_waypoint_id(journey, leg['start_address']),
-                                end_waypoint_id=self.get_waypoint_id(journey, leg['end_address']),
-                                duration_seconds=leg['duration_seconds'],
-                                distance_meters=leg['distance_meters'],
-                                speed_kph=leg['speed_kph'],
-                                created_at=now
+                                start_waypoint_id=self.get_waypoint_id(
+                                    journey, leg["start_address"]
+                                ),
+                                end_waypoint_id=self.get_waypoint_id(
+                                    journey, leg["end_address"]
+                                ),
+                                duration_seconds=leg["duration_seconds"],
+                                distance_meters=leg["distance_meters"],
+                                speed_kph=leg["speed_kph"],
+                                created_at=now,
                             )
                             db.add(journey_leg)
 
@@ -192,7 +215,9 @@ class JourneyScheduler:
                 logger.info(f"Completed in {processing_time:.2f}ms")
 
                 if total_journeys > 0:
-                    logger.info(f"Average: {processing_time / total_journeys:.2f}ms per journey")
+                    logger.info(
+                        f"Average: {processing_time / total_journeys:.2f}ms per journey"
+                    )
 
             except Exception as e:
                 logger.error(f"Error in process_all_journeys: {str(e)}")
