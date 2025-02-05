@@ -20,3 +20,4 @@ class Journey(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False)
 
     waypoints = relationship('Waypoint', back_populates='journey', cascade="all, delete, delete-orphan")
+    measurements = relationship('JourneyMeasurement', back_populates='journey', cascade="all, delete, delete-orphan")
