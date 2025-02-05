@@ -1,9 +1,10 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, cast, Dict, List, Optional
 
 import googlemaps
 from sqlalchemy import and_
+from sqlalchemy import Column
 from sqlalchemy.orm import Session
 
 from core.config import settings
@@ -22,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 class JourneyScheduler:
-    def __init__(self, max_workers: int = None, debug: bool = None):
+    def __init__(self, max_workers: Optional[int] = None, debug: Optional[bool] = None):
         self.max_workers = (
             max_workers if max_workers is not None else settings.MAX_WORKERS
         )
         self.debug = debug if debug is not None else settings.DEBUG
-        self.completed_routes = []
+        self.completed_routes: List[Dict[str, Any]] = []
 
         api_key = settings.get_google_maps_api_key()
         self.gmaps = googlemaps.Client(key=api_key)
@@ -71,7 +72,7 @@ class JourneyScheduler:
                 db.query(TransitMode).filter(TransitMode.mode == "driving").first()
             )
 
-        return mode_record.id if mode_record else 1
+        return int(mode_record.id) if mode_record else 1
 
     def get_time_slot_id(self, db: Session, dt: datetime) -> int:
         hour = dt.hour
@@ -96,7 +97,7 @@ class JourneyScheduler:
         if not slot:
             logger.warning(f"Time slot {slot_key} not found, using id 1")
             return 1
-        return slot.id
+        return int(slot.id)
 
     def get_waypoint_id(self, journey: Journey, address: str) -> int:
         for wp in journey.waypoints:
@@ -122,8 +123,8 @@ class JourneyScheduler:
                 )
 
                 if existing:
-                    existing.timestamp = now
-                    existing.local_timestamp = now
+                    existing.timestamp = cast(Column[datetime], now)
+                    existing.local_timestamp = cast(Column[datetime], now)
                     existing.duration_seconds = mode_data["metrics"]["duration_seconds"]
                     existing.distance_meters = mode_data["metrics"]["distance_meters"]
                     existing.speed_kph = mode_data["metrics"]["speed_kph"]
