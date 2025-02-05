@@ -8,16 +8,10 @@ class JourneyLeg(Base):
     __tablename__ = "journey_legs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    journey_measurement_id = Column(
-        Integer, ForeignKey("journey_measurements.id"), nullable=False
-    )
+    journey_measurement_id = Column(Integer, ForeignKey("journey_measurements.id"), nullable=False)
     sequence_number = Column(SmallInteger, nullable=False)
-    start_waypoint_id = Column(
-        Integer, ForeignKey("journey_waypoints.id"), nullable=False
-    )
-    end_waypoint_id = Column(
-        Integer, ForeignKey("journey_waypoints.id"), nullable=False
-    )
+    start_waypoint_id = Column(Integer, ForeignKey("journey_waypoints.id"), nullable=False)
+    end_waypoint_id = Column(Integer, ForeignKey("journey_waypoints.id"), nullable=False)
     duration_seconds = Column(Integer, nullable=False)
     distance_meters = Column(Numeric(10, 2), nullable=False)
     speed_kph = Column(Numeric(5, 2), nullable=False)

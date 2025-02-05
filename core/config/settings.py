@@ -34,12 +34,8 @@ DB_NAME = os.getenv("DB_NAME")
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Runtime settings
-MAX_RUNTIME_SECONDS = float(
-    os.getenv("MAX_RUNTIME_SECONDS", "60")
-)  # Target runtime limit
-HEROKU_TIMEOUT_MARGIN = float(
-    os.getenv("HEROKU_TIMEOUT_MARGIN", "25")
-)  # Safety margin for Heroku's 30s timeout
+MAX_RUNTIME_SECONDS = float(os.getenv("MAX_RUNTIME_SECONDS", "60"))  # Target runtime limit
+HEROKU_TIMEOUT_MARGIN = float(os.getenv("HEROKU_TIMEOUT_MARGIN", "25"))  # Safety margin for Heroku's 30s timeout
 
 # Ensure required directories exist
 for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, METRICS_DATA_DIR]:

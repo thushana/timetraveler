@@ -28,7 +28,7 @@ where = ["."]
 include = ["core*", "database*"]
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ['py38']
 exclude = '''
 /(
@@ -43,13 +43,13 @@ exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 88
+line_length = 120
 known_third_party = ["googlemaps", "sqlalchemy"]
 skip = ["migrations", ".venv", "env"]
 
 [tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503"]
+max-line-length = 120
+extend-ignore = ["E203", "W503", "E501"]  # Added E501 here to ignore line length errors
 exclude = [
   ".git",
   "__pycache__",
@@ -57,7 +57,7 @@ exclude = [
   "venv",
   ".venv",
   "migrations",
-  "site-packages"
+  "**/site-packages/*"
 ]
 
 [tool.mypy]

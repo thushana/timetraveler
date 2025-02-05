@@ -6,7 +6,7 @@ from core.journey.scheduler import JourneyScheduler
 logging.basicConfig(level=logging.INFO)
 
 
-def main():
+def main() -> None:
     scheduler = JourneyScheduler(debug=True)
     scheduler.process_all_journeys()
 

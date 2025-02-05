@@ -23,18 +23,14 @@ logger = logging.getLogger(__name__)
 
 class JourneyScheduler:
     def __init__(self, max_workers: Optional[int] = None, debug: Optional[bool] = None):
-        self.max_workers = (
-            max_workers if max_workers is not None else settings.MAX_WORKERS
-        )
+        self.max_workers = max_workers if max_workers is not None else settings.MAX_WORKERS
         self.debug = debug if debug is not None else settings.DEBUG
         self.completed_routes: List[Dict[str, Any]] = []
 
         api_key = settings.get_google_maps_api_key()
         self.gmaps = googlemaps.Client(key=api_key)
 
-        self.calculator = JourneyMetricsCalculator(
-            self.gmaps, max_workers=self.max_workers, debug=self.debug
-        )
+        self.calculator = JourneyMetricsCalculator(self.gmaps, max_workers=self.max_workers, debug=self.debug)
         self.reporter = JourneyReporter(debug=self.debug)
 
     def load_active_journeys(self, db: Session) -> List[Journey]:
@@ -64,12 +60,8 @@ class JourneyScheduler:
 
         mode_record = db.query(TransitMode).filter(TransitMode.mode == mode_key).first()
         if not mode_record:
-            logger.warning(
-                f"Transit mode {mode_key} not found, using default mode 'driving'"
-            )
-            mode_record = (
-                db.query(TransitMode).filter(TransitMode.mode == "driving").first()
-            )
+            logger.warning(f"Transit mode {mode_key} not found, using default mode 'driving'")
+            mode_record = db.query(TransitMode).filter(TransitMode.mode == "driving").first()
 
         return int(mode_record.id) if mode_record else 1
 
@@ -104,9 +96,7 @@ class JourneyScheduler:
                 return wp.id
         return journey.waypoints[0].id  # Fallback to first waypoint
 
-    def save_journey_metrics(
-        self, db: Session, journey: Journey, metrics: Dict[str, Any]
-    ) -> None:
+    def save_journey_metrics(self, db: Session, journey: Journey, metrics: Dict[str, Any]) -> None:
         try:
             now = datetime.now()
 
@@ -151,9 +141,7 @@ class JourneyScheduler:
                         existing_leg = (
                             db.query(JourneyLeg)
                             .filter_by(
-                                journey_measurement_id=(
-                                    existing.id if existing else measurement.id
-                                ),
+                                journey_measurement_id=(existing.id if existing else measurement.id),
                                 sequence_number=seq,
                             )
                             .first()
@@ -161,16 +149,10 @@ class JourneyScheduler:
 
                         if not existing_leg:
                             journey_leg = JourneyLeg(
-                                journey_measurement_id=(
-                                    existing.id if existing else measurement.id
-                                ),
+                                journey_measurement_id=(existing.id if existing else measurement.id),
                                 sequence_number=seq,
-                                start_waypoint_id=self.get_waypoint_id(
-                                    journey, leg["start_address"]
-                                ),
-                                end_waypoint_id=self.get_waypoint_id(
-                                    journey, leg["end_address"]
-                                ),
+                                start_waypoint_id=self.get_waypoint_id(journey, leg["start_address"]),
+                                end_waypoint_id=self.get_waypoint_id(journey, leg["end_address"]),
                                 duration_seconds=leg["duration_seconds"],
                                 distance_meters=leg["distance_meters"],
                                 speed_kph=leg["speed_kph"],
@@ -216,9 +198,7 @@ class JourneyScheduler:
                 logger.info(f"Completed in {processing_time:.2f}ms")
 
                 if total_journeys > 0:
-                    logger.info(
-                        f"Average: {processing_time / total_journeys:.2f}ms per journey"
-                    )
+                    logger.info(f"Average: {processing_time / total_journeys:.2f}ms per journey")
 
             except Exception as e:
                 logger.error(f"Error in process_all_journeys: {str(e)}")

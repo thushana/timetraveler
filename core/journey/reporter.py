@@ -42,9 +42,7 @@ class JourneyReporter:
         }
         return emoji_map.get(mode, "🗺️")
 
-    def print_measurement_details(
-        self, db: Session, measurement: JourneyMeasurement, indent: str = ""
-    ) -> None:
+    def print_measurement_details(self, db: Session, measurement: JourneyMeasurement, indent: str = "") -> None:
         """Print details for a specific journey measurement."""
         if not measurement:
             if self.debug:
@@ -52,16 +50,12 @@ class JourneyReporter:
             return
 
         # Fetch the transit mode name using the provided db session
-        mode_record = (
-            db.query(TransitMode).filter_by(id=measurement.transit_mode_id).first()
-        )
+        mode_record = db.query(TransitMode).filter_by(id=measurement.transit_mode_id).first()
         mode = str(mode_record.mode) if mode_record else "unknown"
 
         emoji = self.get_mode_emoji(mode)
         print(f"\n{indent}{emoji} {mode.upper()}:")
-        print(
-            f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}"
-        )
+        print(f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}")
         print(
             f"{indent}Distance: {float(measurement.distance_meters)/1000:.1f} km ({self.meters_to_miles(float(measurement.distance_meters)):.1f} miles)"
         )
@@ -86,9 +80,7 @@ class JourneyReporter:
                     f"{indent}Speed: {float(leg.speed_kph):.1f} kph ({self.kph_to_mph(float(leg.speed_kph)):.1f} mph)"
                 )
 
-    def print_journey_summary(
-        self, db: Session, journey: Journey, measurements: List[JourneyMeasurement]
-    ) -> None:
+    def print_journey_summary(self, db: Session, journey: Journey, measurements: List[JourneyMeasurement]) -> None:
         """Print a detailed summary of journey measurements including imperial conversions."""
         if self.debug:
             logger.info(f"Printing summary for journey: {journey.name}")
@@ -106,9 +98,7 @@ class JourneyReporter:
                 self.print_measurement_details(db, measurement)
 
         # Print driving_routed separately
-        routed_measurement = next(
-            (m for m in measurements if m.transit_mode_id == 2), None
-        )
+        routed_measurement = next((m for m in measurements if m.transit_mode_id == 2), None)
         if routed_measurement:
             print("\n" + "=" * 80)
             print("🛣️ DRIVING (ROUTED WITH WAYPOINTS):")
@@ -117,9 +107,7 @@ class JourneyReporter:
 
         print("\n" + "=" * 80)
 
-    def print_batch_summary(
-        self, db: Session, completed_journeys: List[Journey]
-    ) -> None:
+    def print_batch_summary(self, db: Session, completed_journeys: List[Journey]) -> None:
         """Print summaries for a batch of completed journeys."""
         if not completed_journeys:
             logger.warning("No journeys to summarize")

@@ -33,11 +33,9 @@ class JourneyMetricsCalculator:
         debug: Optional[bool] = None,
     ):
         self.gmaps = gmaps_client
-        self.max_workers = (
-            max_workers if max_workers is not None else settings.MAX_WORKERS
-        )
+        self.max_workers = max_workers if max_workers is not None else settings.MAX_WORKERS
         self.debug = debug if debug is not None else settings.DEBUG
-        self._executor = None
+        self._executor: Optional[ThreadPoolExecutor] = None  # Add explicit type hint
 
     @property
     def thread_pool(self) -> ThreadPoolExecutor:
@@ -182,8 +180,7 @@ class JourneyMetricsCalculator:
 
             journey_metrics: Dict[str, Any] = {
                 "journey_name": journey.name,
-                "journey_description": journey.description
-                or "No description available",
+                "journey_description": journey.description or "No description available",
                 "timestamp": datetime.now().isoformat(),
                 "modes": {},
                 "status": "success",
@@ -195,18 +192,14 @@ class JourneyMetricsCalculator:
                 journey_metrics["error"] = "No valid tasks created for journey"
                 return journey_metrics
 
-            futures = {
-                self.thread_pool.submit(self.process_task, task): task for task in tasks
-            }
+            futures = {self.thread_pool.submit(self.process_task, task): task for task in tasks}
 
             for future in as_completed(futures):
                 task = futures[future]
                 try:
                     result = future.result()
                     if result:
-                        mode_key = (
-                            f"{task.mode}_routed" if task.is_routed else task.mode
-                        )
+                        mode_key = f"{task.mode}_routed" if task.is_routed else task.mode
                         journey_metrics["modes"][mode_key] = result
                         if isinstance(journey_metrics["modes"], dict):
                             journey_metrics["modes"][mode_key] = result

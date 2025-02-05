@@ -29,6 +29,4 @@ class JourneyMeasurement(Base):
     created_at = Column(TIMESTAMP(timezone=True), nullable=False)
 
     journey = relationship("Journey", back_populates="measurements")
-    legs = relationship(
-        "JourneyLeg", back_populates="measurement", cascade="all, delete, delete-orphan"
-    )
+    legs = relationship("JourneyLeg", back_populates="measurement", cascade="all, delete, delete-orphan")

@@ -50,12 +50,10 @@ def main() -> None:
         debug_mode = "--debug" in sys.argv
 
         # Initialize scheduler with Heroku Eco dyno optimized settings
-        scheduler = JourneyScheduler(
-            max_workers=4, debug=debug_mode  # Optimized for Heroku Eco dyno
-        )
+        scheduler = JourneyScheduler(max_workers=4, debug=debug_mode)  # Optimized for Heroku Eco dyno
 
         # Process journeys
-        scheduler.process_all_routes()
+        scheduler.process_all_journeys()
 
         # Calculate and log metrics
         end_time = time.perf_counter()
@@ -64,16 +62,12 @@ def main() -> None:
 
         logger.info("Successfully completed journey metrics calculation job")
         logger.info(f"Total run time: {format_time(run_time)}")
-        logger.info(
-            f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}"
-        )
+        logger.info(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         logger.info(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
 
         # Exit with success if runtime is within target
         if run_time > 1:
-            logger.warning(
-                f"Job completed but exceeded target runtime: {format_time(run_time)}"
-            )
+            logger.warning(f"Job completed but exceeded target runtime: {format_time(run_time)}")
 
     except Exception as e:
         end_time = time.perf_counter()

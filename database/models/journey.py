@@ -1,5 +1,8 @@
-from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import JSON, DateTime, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models.base import Base
 
@@ -7,23 +10,21 @@ from database.models.base import Base
 class Journey(Base):
     __tablename__ = "journeys"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    city = Column(String, nullable=True)
-    state = Column(String, nullable=True)
-    country = Column(String, nullable=True)
-    timezone = Column(Text, nullable=True)
-    status_id = Column(Integer, nullable=True)
-    error_message = Column(Text, nullable=True)
-    maps_url = Column(Text, nullable=True)
-    raw_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False)
-    updated_at = Column(DateTime(timezone=True), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    timezone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    maps_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    raw_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    waypoints = relationship(
-        "Waypoint", back_populates="journey", cascade="all, delete, delete-orphan"
-    )
+    waypoints = relationship("Waypoint", back_populates="journey", cascade="all, delete, delete-orphan")
     measurements = relationship(
         "JourneyMeasurement",
         back_populates="journey",

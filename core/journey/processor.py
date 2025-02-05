@@ -18,30 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 class JourneyProcessor:
-    def __init__(
-        self, db: Session, gmaps_client: googlemaps.Client, debug: Optional[bool] = None
-    ):
+    def __init__(self, db: Session, gmaps_client: googlemaps.Client, debug: Optional[bool] = None):
         self.db = db
         self.gmaps = gmaps_client
         self.debug = debug if debug is not None else False
 
     def extract_plus_codes(self, url: str) -> List[Dict[str, str]]:
         decoded_url = urllib.parse.unquote(url)
-        matches = re.findall(
-            r"!2s([A-Z0-9]{4,6}\+[A-Z0-9]{2,3}),\+([^!]+)", decoded_url
-        )
+        matches = re.findall(r"!2s([A-Z0-9]{4,6}\+[A-Z0-9]{2,3}),\+([^!]+)", decoded_url)
         if not matches:
             raise ValueError("No Plus Codes found in the URL")
         return [{"plus_code": code, "location": location} for code, location in matches]
 
-    def enrich_waypoint_data(
-        self, plus_code_with_location: Dict[str, str]
-    ) -> Dict[str, Any]:
+    def enrich_waypoint_data(self, plus_code_with_location: Dict[str, str]) -> Dict[str, Any]:
         full_code = f"{plus_code_with_location['plus_code']} {plus_code_with_location['location']}"
 
-        place_result = self.gmaps.find_place(
-            full_code, "textquery", fields=["geometry"]
-        )
+        place_result = self.gmaps.find_place(full_code, "textquery", fields=["geometry"])
 
         if not place_result["candidates"]:
             raise ValueError(f"Could not find coordinates for {full_code}")
@@ -51,44 +43,28 @@ class JourneyProcessor:
 
         timezone_result = self.gmaps.timezone((lat, lng))
         if not timezone_result or "timeZoneId" not in timezone_result:
-            raise ValueError(
-                f"Could not determine timezone for coordinates {lat}, {lng}"
-            )
+            raise ValueError(f"Could not determine timezone for coordinates {lat}, {lng}")
 
         timezone_str = timezone_result["timeZoneId"]
 
         reverse_geocode = self.gmaps.reverse_geocode((lat, lng))
 
         if not reverse_geocode:
-            raise ValueError(
-                f"Could not find place details for coordinates {lat}, {lng}"
-            )
+            raise ValueError(f"Could not find place details for coordinates {lat}, {lng}")
 
         place_details = reverse_geocode[0]
         address_components = place_details.get("address_components", [])
 
         city = next(
-            (
-                comp["long_name"]
-                for comp in address_components
-                if "locality" in comp["types"]
-            ),
+            (comp["long_name"] for comp in address_components if "locality" in comp["types"]),
             None,
         )
         state = next(
-            (
-                comp["long_name"]
-                for comp in address_components
-                if "administrative_area_level_1" in comp["types"]
-            ),
+            (comp["long_name"] for comp in address_components if "administrative_area_level_1" in comp["types"]),
             None,
         )
         country = next(
-            (
-                comp["long_name"]
-                for comp in address_components
-                if "country" in comp["types"]
-            ),
+            (comp["long_name"] for comp in address_components if "country" in comp["types"]),
             None,
         )
 
@@ -104,9 +80,7 @@ class JourneyProcessor:
             "timezone": timezone_str,
         }
 
-    def process_route(
-        self, maps_url: str, journey_name: str, description: Optional[str] = None
-    ) -> Journey:
+    def process_route(self, maps_url: str, journey_name: str, description: Optional[str] = None) -> Journey:
         if self.debug:
             logger.info(f"Processing journey: {journey_name}")
 
@@ -121,9 +95,7 @@ class JourneyProcessor:
             journey.description = description or journey.description
             journey.updated_at = now
 
-            self.db.query(Waypoint).filter(Waypoint.journey_id == journey.id).delete(
-                synchronize_session=False
-            )
+            self.db.query(Waypoint).filter(Waypoint.journey_id == journey.id).delete(synchronize_session=False)
             self.db.flush()
         else:
             first_waypoint = self.enrich_waypoint_data(waypoints_data[0])
@@ -166,9 +138,7 @@ class JourneyProcessor:
         try:
             self.db.commit()
             if self.debug:
-                logger.info(
-                    f"Journey '{journey_name}' updated successfully in database."
-                )
+                logger.info(f"Journey '{journey_name}' updated successfully in database.")
         except Exception as e:
             self.db.rollback()
             logger.error(f"Database error updating journey '{journey_name}': {str(e)}")
@@ -176,9 +146,7 @@ class JourneyProcessor:
 
         return journey
 
-    def process_routes_file(
-        self, journeys_filename: Optional[Path] = None
-    ) -> List[Journey]:
+    def process_routes_file(self, journeys_filename: Optional[Path] = None) -> List[Journey]:
         if self.debug:
             logger.info(f"Processing journeys from {journeys_filename}")
 
@@ -204,9 +172,7 @@ class JourneyProcessor:
                     processed_journeys.append(processed_journey)
 
                 except Exception as e:
-                    logger.error(
-                        f"Error processing journey '{journey['route_name']}': {str(e)}"
-                    )
+                    logger.error(f"Error processing journey '{journey['route_name']}': {str(e)}")
                     continue
 
             return processed_journeys
