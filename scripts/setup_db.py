@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
-def init_database():
+def init_database() -> bool:
     load_dotenv()
 
     # Connect to default postgres database

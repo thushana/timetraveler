@@ -25,3 +25,10 @@ migrate:
 reset-db:
 	psql -U $(DB_USER) -h $(DB_HOST) -d postgres -c "DROP DATABASE IF EXISTS timetraveler;"
 	python scripts/setup_db.py
+
+# Chain linters
+lint:
+	flake8 .
+	black .
+	isort .
+	mypy .

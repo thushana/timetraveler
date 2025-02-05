@@ -4,11 +4,13 @@ import re
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import googlemaps
 import pytz
+
 from sqlalchemy.orm import Session
+from sqlalchemy import Column
 
 from database.models.journey import Journey
 from database.models.waypoint import Waypoint
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class JourneyProcessor:
     def __init__(
-        self, db: Session, gmaps_client: googlemaps.Client, debug: bool = None
+        self, db: Session, gmaps_client: googlemaps.Client, debug: Optional[bool] = None
     ):
         self.db = db
         self.gmaps = gmaps_client
@@ -48,7 +50,6 @@ class JourneyProcessor:
         lat = place_result["candidates"][0]["geometry"]["location"]["lat"]
         lng = place_result["candidates"][0]["geometry"]["location"]["lng"]
 
-        # Get timezone from Google Maps API
         timezone_result = self.gmaps.timezone((lat, lng))
         if not timezone_result or "timeZoneId" not in timezone_result:
             raise ValueError(
@@ -105,7 +106,7 @@ class JourneyProcessor:
         }
 
     def process_route(
-        self, maps_url: str, journey_name: str, description: str = None
+        self, maps_url: str, journey_name: str, description: Optional[str] = None
     ) -> Journey:
         if self.debug:
             logger.info(f"Processing journey: {journey_name}")
@@ -113,7 +114,6 @@ class JourneyProcessor:
         waypoints_data = self.extract_plus_codes(maps_url)
         now = datetime.now(pytz.UTC)
 
-        # Check if journey already exists
         existing_journey = self.db.query(Journey).filter_by(name=journey_name).first()
 
         if existing_journey:
@@ -122,16 +122,13 @@ class JourneyProcessor:
             journey.description = description or journey.description
             journey.updated_at = now
 
-            # Explicitly delete existing waypoints before adding new ones
             self.db.query(Waypoint).filter(Waypoint.journey_id == journey.id).delete(
                 synchronize_session=False
             )
             self.db.flush()
         else:
-            # Get first waypoint data for journey location
             first_waypoint = self.enrich_waypoint_data(waypoints_data[0])
 
-            # Create new journey record
             journey = Journey(
                 name=journey_name,
                 description=description,
@@ -140,24 +137,23 @@ class JourneyProcessor:
                 updated_at=now,
                 raw_data={"url": maps_url},
                 status_id=1,
-                city=first_waypoint["city"],
-                state=first_waypoint["state"],
-                country=first_waypoint["country"],
-                timezone=first_waypoint["timezone"],
+                city=str(first_waypoint["city"]),
+                state=str(first_waypoint["state"]),
+                country=str(first_waypoint["country"]),
+                timezone=str(first_waypoint["timezone"]),
             )
             self.db.add(journey)
 
-        # Process waypoints
         for idx, waypoint_data in enumerate(waypoints_data, 1):
             try:
                 enriched_data = self.enrich_waypoint_data(waypoint_data)
 
                 waypoint = Waypoint(
                     sequence_number=idx,
-                    journey_id=journey.id,  # Ensure waypoint is linked to the journey
-                    place_id=enriched_data["place_id"],
-                    plus_code=enriched_data["plus_code"],
-                    formatted_address=enriched_data["formatted_address"],
+                    journey_id=journey.id,
+                    place_id=str(enriched_data["place_id"]),
+                    plus_code=str(enriched_data["plus_code"]),
+                    formatted_address=str(enriched_data["formatted_address"]),
                     latitude=enriched_data["latitude"],
                     longitude=enriched_data["longitude"],
                     created_at=now,
@@ -181,12 +177,12 @@ class JourneyProcessor:
 
         return journey
 
-    def process_routes_file(self, journeys_filename: Path = None) -> List[Journey]:
+    def process_routes_file(self, journeys_filename: Optional[Path] = None) -> List[Journey]:
         if self.debug:
             logger.info(f"Processing journeys from {journeys_filename}")
 
         try:
-            if not journeys_filename.exists():
+            if journeys_filename is None or not journeys_filename.exists():
                 raise FileNotFoundError(f"Journeys file not found: {journeys_filename}")
 
             with journeys_filename.open("r", encoding="utf-8") as f:

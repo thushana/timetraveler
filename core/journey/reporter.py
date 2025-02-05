@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class JourneyReporter:
-    def __init__(self, debug: bool = None):
+    def __init__(self, debug: Optional[bool] = None):
         self.debug = debug if debug is not None else settings.DEBUG
 
     @staticmethod
@@ -55,11 +55,11 @@ class JourneyReporter:
         mode_record = (
             db.query(TransitMode).filter_by(id=measurement.transit_mode_id).first()
         )
-        mode = mode_record.mode if mode_record else "unknown"
+        mode = str(mode_record.mode) if mode_record else "unknown"
 
         emoji = self.get_mode_emoji(mode)
         print(f"\n{indent}{emoji} {mode.upper()}:")
-        print(f"{indent}Duration: {self.format_duration(measurement.duration_seconds)}")
+        print(f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}")
         print(
             f"{indent}Distance: {float(measurement.distance_meters)/1000:.1f} km ({self.meters_to_miles(float(measurement.distance_meters)):.1f} miles)"
         )
