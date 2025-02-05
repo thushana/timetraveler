@@ -1,14 +1,15 @@
-from datetime import datetime
-from typing import Dict, Any, List, Optional
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import googlemaps
 
 from core.config import settings
 from database.models.journey import Journey
-from database.models.journey_measurement import JourneyMeasurement
 from database.models.journey_leg import JourneyLeg
+from database.models.journey_measurement import JourneyMeasurement
 
 logger = logging.getLogger(__name__)
 

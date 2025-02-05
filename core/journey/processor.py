@@ -1,12 +1,13 @@
 import json
+import logging
 import re
 import urllib.parse
-import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
-import pytz
+from typing import Any, Dict, List
+
 import googlemaps
+import pytz
 from sqlalchemy.orm import Session
 
 from database.models.journey import Journey

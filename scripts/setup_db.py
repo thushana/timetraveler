@@ -1,9 +1,10 @@
 # setup_db.py
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from dotenv import load_dotenv
 import os
 import subprocess
+
+import psycopg2
+from dotenv import load_dotenv
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
 def init_database():

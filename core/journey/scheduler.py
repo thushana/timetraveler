@@ -1,21 +1,22 @@
 import logging
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 import googlemaps
-from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.journey.calculator import JourneyMetricsCalculator
 from core.journey.processor import JourneyProcessor
 from core.journey.reporter import JourneyReporter
-from database.session import get_db
-from database.models.journey import Journey
-from database.models.journey_measurement import JourneyMeasurement
-from database.models.journey_leg import JourneyLeg
-from database.models.transit_mode import TransitMode
-from database.models.time_slot import TimeSlot
 from database.models.day_of_week import DayOfWeek
+from database.models.journey import Journey
+from database.models.journey_leg import JourneyLeg
+from database.models.journey_measurement import JourneyMeasurement
+from database.models.time_slot import TimeSlot
+from database.models.transit_mode import TransitMode
+from database.session import get_db
 
 logger = logging.getLogger(__name__)
 

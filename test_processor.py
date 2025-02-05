@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 import logging
+import os
 import sys
 import time
 from datetime import datetime
-import os
 from pathlib import Path
+
 import googlemaps
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
 
 from core.journey.processor import JourneyProcessor
 from database.models.base import Base

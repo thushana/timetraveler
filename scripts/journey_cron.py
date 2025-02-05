@@ -6,7 +6,6 @@ from datetime import datetime
 
 from core.journey.scheduler import JourneyScheduler
 
-
 # Configure logging for Heroku environment
 logging.basicConfig(
     level=logging.INFO,

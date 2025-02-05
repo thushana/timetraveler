@@ -1,14 +1,15 @@
 from sqlalchemy import (
     Column,
+    DateTime,
+    ForeignKey,
     Integer,
+    Numeric,
+    SmallInteger,
     String,
     Text,
-    Numeric,
-    ForeignKey,
-    SmallInteger,
-    DateTime,
 )
 from sqlalchemy.orm import relationship
+
 from database.models.base import Base
 
 

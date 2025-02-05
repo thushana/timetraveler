@@ -1,13 +1,14 @@
 from sqlalchemy import (
-    Column,
-    Integer,
-    ForeignKey,
+    JSON,
     TIMESTAMP,
+    Column,
+    ForeignKey,
+    Integer,
     Numeric,
     SmallInteger,
-    JSON,
 )
 from sqlalchemy.orm import relationship
+
 from database.models.base import Base
 
 
