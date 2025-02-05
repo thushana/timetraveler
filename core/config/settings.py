@@ -23,6 +23,15 @@ PROCESSED_JOURNEYS_PATH = PROCESSED_DATA_DIR / 'journeys_enriched.json'
 MAX_WORKERS = int(os.getenv('MAX_WORKERS', '4'))  # Thread pool size
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
+# Database settings
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT')
+DB_NAME = os.getenv('DB_NAME')
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
 # Runtime settings
 MAX_RUNTIME_SECONDS = float(os.getenv('MAX_RUNTIME_SECONDS', '60'))  # Target runtime limit
 HEROKU_TIMEOUT_MARGIN = float(os.getenv('HEROKU_TIMEOUT_MARGIN', '25'))  # Safety margin for Heroku's 30s timeout

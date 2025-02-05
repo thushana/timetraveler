@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, TIMESTAMP, Numeric, SmallInteger, JSONB
+from sqlalchemy import Column, Integer, ForeignKey, TIMESTAMP, Numeric, SmallInteger, JSON
 from sqlalchemy.orm import relationship
 from database.models.base import Base
 
@@ -15,7 +15,7 @@ class JourneyMeasurement(Base):
     duration_seconds = Column(Integer, nullable=False)
     distance_meters = Column(Numeric(10, 2), nullable=False)
     speed_kph = Column(Numeric(5, 2), nullable=False)
-    raw_response = Column(JSONB, nullable=True)
+    raw_response = Column(JSON, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False)
 
     journey = relationship('Journey', back_populates='measurements')
