@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # Determine environment and load appropriate .env file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
