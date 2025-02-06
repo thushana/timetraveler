@@ -1,2 +1,2 @@
 # Procfile
-worker: python /app/measure.py >> /app/logs/worker.log 2>&1
+worker: python measure.py
