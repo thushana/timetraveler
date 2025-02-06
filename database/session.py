@@ -1,7 +1,7 @@
+import logging
 from contextlib import contextmanager
 from typing import Generator
 
-import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -16,6 +16,7 @@ engine = create_engine(settings.DATABASE_URL)
 
 # Configure session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 @contextmanager
 def get_db() -> Generator[Session, None, None]:
