@@ -38,8 +38,8 @@ class JourneyScheduler:
             db.query(Journey)
             .filter(
                 and_(
-                    Journey.status_id == 1,  # Active status
-                    Journey.waypoints.any(),  # Has waypoints
+                    Journey.status_id == 1,
+                    Journey.waypoints.any(),
                 )
             )
             .all()
@@ -60,7 +60,6 @@ class JourneyScheduler:
             for mode, mode_data in metrics["modes"].items():
                 transit_mode_id = TransitMode.get_id(db, mode)
 
-                # 🚀 Always create a new measurement instead of updating an existing one
                 measurement = JourneyMeasurement(
                     journey_id=journey.id,
                     transit_mode_id=transit_mode_id,
@@ -76,7 +75,7 @@ class JourneyScheduler:
                 )
                 db.add(measurement)
 
-            db.commit()  # 🚀 Ensure commit happens
+            db.commit()
             logger.info(f"Inserted new measurement for journey '{journey.name}'")
 
         except Exception as e:

@@ -31,17 +31,6 @@ class JourneyReporter:
     def kph_to_mph(kph: float) -> float:
         return kph * 0.621371
 
-    @staticmethod
-    def get_mode_emoji(mode: str) -> str:
-        emoji_map = {
-            "driving": "🚗",
-            "driving_routed": "🚙",
-            "bicycling": "🚲",
-            "walking": "🚶",
-            "transit": "🚌",
-        }
-        return emoji_map.get(mode, "🗺️")
-
     def print_measurement_details(self, db: Session, measurement: JourneyMeasurement, indent: str = "") -> None:
         """Print details for a specific journey measurement."""
         if not measurement:
@@ -53,7 +42,7 @@ class JourneyReporter:
         mode_record = db.query(TransitMode).filter_by(id=measurement.transit_mode_id).first()
         mode = str(mode_record.mode) if mode_record else "unknown"
 
-        emoji = self.get_mode_emoji(mode)
+        emoji = TransitMode.get_emoji(mode)
         print(f"\n{indent}{emoji} {mode.upper()}:")
         print(f"{indent}Duration: {self.format_duration(int(measurement.duration_seconds))}")
         print(

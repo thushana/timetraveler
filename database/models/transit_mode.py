@@ -27,3 +27,15 @@ class TransitMode(Base):
             return int(default_mode_record.id)
 
         raise ValueError("Default transit mode 'driving' not found in the database.")
+
+    @staticmethod
+    def get_emoji(mode: str) -> str:
+        """Return an emoji representation of a transit mode."""
+        emoji_map = {
+            "driving": "🚗",
+            "driving_routed": "🚙",
+            "bicycling": "🚲",
+            "walking": "🚶",
+            "transit": "🚌",
+        }
+        return emoji_map.get(mode, "🗺️")
