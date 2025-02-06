@@ -1,31 +1,32 @@
-[build-system]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "timetraveler"
-version = "0.1"
-description = """
-TimeTraveler is a route traffic analysis system designed to study and compare 
-traffic patterns on specific routes over time across different modes. It captures 
-and analyzes route data at 15-minute intervals, to deliver insight on traffic 
-patterns across days, weeks, months and years.
-"""
-authors = [
-    { name="Thushan Amarasiriwardena", email="timetraveler@thushan.net" }
-]
-dependencies = [
-    "sqlalchemy",
-    "googlemaps", 
-    "python-dotenv",
-    "psycopg2-binary",
-    "pytz",
-    "alembic",
+version = "0.1.0"
+description = "TimeTraveler is a route traffic analysis system designed to study and compare traffic patterns on specific routes over time across different modes."
+authors = ["Thushan Amarasiriwardena <timetraveler@thushan.net>"]
+packages = [
+    { include = "core" },
+    { include = "database" }
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["core*", "database*"]
+[tool.poetry.dependencies]
+python = "^3.8"
+sqlalchemy = "*"
+googlemaps = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+pytz = "*"
+alembic = "*"
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+flake8 = "*"
+isort = "*"
+mypy = "*"
+types-pytz = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
@@ -49,7 +50,7 @@ skip = ["migrations", ".venv", "env"]
 
 [tool.flake8]
 max-line-length = 120
-extend-ignore = ["E203", "W503", "E501"]  # Added E501 here to ignore line length errors
+extend-ignore = ["E203", "W503", "E501"]
 exclude = [
   ".git",
   "__pycache__",
