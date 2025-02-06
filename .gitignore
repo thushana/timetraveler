@@ -176,3 +176,5 @@ timetraveler-env/bin/activate
 .env
 .DS_Store
 /data/metrics
+.env.development
+.env.production
