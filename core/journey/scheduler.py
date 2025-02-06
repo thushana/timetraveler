@@ -59,66 +59,25 @@ class JourneyScheduler:
 
             for mode, mode_data in metrics["modes"].items():
                 transit_mode_id = TransitMode.get_id(db, mode)
-                existing = (
-                    db.query(JourneyMeasurement)
-                    .filter(
-                        JourneyMeasurement.journey_id == journey.id,
-                        JourneyMeasurement.transit_mode_id == transit_mode_id,
-                    )
-                    .first()
+
+                # 🚀 Always create a new measurement instead of updating an existing one
+                measurement = JourneyMeasurement(
+                    journey_id=journey.id,
+                    transit_mode_id=transit_mode_id,
+                    timestamp=now,
+                    local_timestamp=now,
+                    day_of_week_id=now.isoweekday(),
+                    time_slot_id=TimeSlot.get_id(db, now),
+                    duration_seconds=mode_data["metrics"]["duration_seconds"],
+                    distance_meters=mode_data["metrics"]["distance_meters"],
+                    speed_kph=mode_data["metrics"]["speed_kph"],
+                    raw_response=mode_data,
+                    created_at=now,
                 )
+                db.add(measurement)
 
-                if existing:
-                    existing.timestamp = cast(datetime, now)  # Ensure correct typing
-                    existing.local_timestamp = cast(datetime, now)
-                    existing.duration_seconds = mode_data["metrics"]["duration_seconds"]
-                    existing.distance_meters = mode_data["metrics"]["distance_meters"]
-                    existing.speed_kph = mode_data["metrics"]["speed_kph"]
-                    existing.raw_response = mode_data
-                else:
-                    measurement = JourneyMeasurement(
-                        journey_id=journey.id,
-                        transit_mode_id=transit_mode_id,
-                        timestamp=cast(datetime, now),
-                        local_timestamp=cast(datetime, now),
-                        day_of_week_id=now.isoweekday(),
-                        time_slot_id=TimeSlot.get_id(db, now),
-                        duration_seconds=mode_data["metrics"]["duration_seconds"],
-                        distance_meters=mode_data["metrics"]["distance_meters"],
-                        speed_kph=mode_data["metrics"]["speed_kph"],
-                        raw_response=mode_data,
-                        created_at=now,
-                    )
-                    db.add(measurement)
-
-                db.flush()
-
-                if "leg_details" in mode_data:
-                    for seq, leg in enumerate(mode_data["leg_details"], 1):
-                        existing_leg = (
-                            db.query(JourneyLeg)
-                            .filter_by(
-                                journey_measurement_id=(existing.id if existing else measurement.id),
-                                sequence_number=seq,
-                            )
-                            .first()
-                        )
-
-                        if not existing_leg:
-                            journey_leg = JourneyLeg(
-                                journey_measurement_id=(existing.id if existing else measurement.id),
-                                sequence_number=seq,
-                                start_waypoint_id=Waypoint.get_id(db, journey, leg["start_address"]),
-                                end_waypoint_id=Waypoint.get_id(db, journey, leg["end_address"]),
-                                duration_seconds=leg["duration_seconds"],
-                                distance_meters=leg["distance_meters"],
-                                speed_kph=leg["speed_kph"],
-                                created_at=now,
-                            )
-                            db.add(journey_leg)
-
-            db.commit()
-            logger.info(f"Saved all metrics for journey '{journey.name}'")
+            db.commit()  # 🚀 Ensure commit happens
+            logger.info(f"Inserted new measurement for journey '{journey.name}'")
 
         except Exception as e:
             db.rollback()
