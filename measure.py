@@ -10,7 +10,7 @@ from core.journey.scheduler import JourneyScheduler
 from core.config import settings
 
 # Define log directory and ensure it exists
-LOG_DIR = '/tmp/logs'
+LOG_DIR = os.path.join('/tmp', 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # Log file path
