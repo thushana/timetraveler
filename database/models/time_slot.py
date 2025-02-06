@@ -1,4 +1,8 @@
+from datetime import datetime
+from typing import cast
+
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import Session
 
 from database.models.base import Base
 
@@ -8,3 +12,26 @@ class TimeSlot(Base):
 
     id = Column(Integer, primary_key=True)
     slot = Column(String(50), unique=True, nullable=False)
+
+    @classmethod
+    def get_id(cls, db: Session, dt: datetime) -> int:
+        hour = dt.hour
+        minute = (dt.minute // 15) * 15
+        slot_key = f"{hour:02d}{minute:02d}"
+
+        if hour < 4:
+            period = "overnight"
+        elif hour < 8:
+            period = "dawn"
+        elif hour < 12:
+            period = "morning"
+        elif hour < 16:
+            period = "afternoon"
+        elif hour < 20:
+            period = "evening"
+        else:
+            period = "night"
+
+        slot_key = f"{slot_key}_{period}"
+        slot = db.query(cls).filter_by(slot=slot_key).first()
+        return int(slot.id) if slot else 1
