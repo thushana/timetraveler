@@ -18,6 +18,11 @@ engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+def get_engine(database_url: str = None):
+    """Returns a new SQLAlchemy engine. Required for Alembic migrations."""
+    return create_engine(database_url or settings.DATABASE_URL)
+
+
 @contextmanager
 def get_db() -> Generator[Session, None, None]:
     """Provide a transactional scope around a series of operations."""
