@@ -1,44 +1,41 @@
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
-from dotenv import load_dotenv
-from database.models.base import Base
+# Import os and regex for Heroku compatibility
 import os
+import re
+from logging.config import fileConfig
 
-# Load our environment variables at the start
-load_dotenv()
+# Import Alembic and SQLAlchemy
+from alembic import context
+from sqlalchemy import engine_from_config, pool
+from sqlalchemy.engine.url import make_url
 
-# This is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Import your database models (adjust if needed)
+from database.models.base import Base
+from database.session import get_engine
+
+# Load Alembic config object
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
+# Interpret the config file for Python logging
+if config.config_file_name:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata  # This enables Alembic to detect schema changes
+# Get database URL from environment or alembic.ini
+DATABASE_URL = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
 
-# Construct our database URL from environment variables
-def get_url():
-    return (f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@"
-            f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+# Convert 'postgres://' to 'postgresql+psycopg2://', required for Heroku
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = re.sub(r"^postgres://", "postgresql+psycopg2://", DATABASE_URL, 1)
 
-def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-    
-    This mode is useful for producing SQL scripts that can be 
-    run later or in different environments.
-    """
-    # Use our environment-based URL instead of the config file
-    url = get_url()
+# Update Alembic config
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
+# Attach the Base metadata
+target_metadata = Base.metadata
+
+def run_migrations_offline():
+    """Run migrations in 'offline' mode."""
     context.configure(
-        url=url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -47,31 +44,18 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-    
-    This is the typical way migrations run - directly executing
-    SQL commands against the database.
-    """
-    # Override the SQLAlchemy URL with our environment-based one
-    configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = get_url()
-    
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+def run_migrations_online():
+    """Run migrations in 'online' mode."""
+    connectable = get_engine(DATABASE_URL)
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata
         )
 
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()
