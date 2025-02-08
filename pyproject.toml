@@ -3,19 +3,17 @@ name = "timetraveler"
 version = "0.1.0"
 description = "TimeTraveler is a route traffic analysis system designed to study and compare traffic patterns on specific routes over time across different modes."
 authors = ["Thushan Amarasiriwardena <timetraveler@thushan.net>"]
-packages = [
-    { include = "core" },
-    { include = "database" }
-]
+packages = [{ include = "core" }, { include = "database" }]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.9,<4.0 || >=3.13"
 sqlalchemy = "*"
 googlemaps = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 pytz = "*"
 alembic = "*"
+more-itertools = "^10.6.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
