@@ -4,8 +4,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 
-print(f"🔍 DEBUG: DB_PORT (raw) = {os.getenv('DB_PORT')}")
-
 # Determine environment and load appropriate .env file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 env_file = Path(__file__).resolve().parent.parent.parent / f".env.{ENVIRONMENT}"
@@ -35,7 +33,6 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 def parse_database_url():
     """Parse DATABASE_URL if present (Heroku) or return individual components"""
     database_url = os.getenv("DATABASE_URL")
-
     if database_url and database_url.startswith("postgres://"):
         # Parse Heroku DATABASE_URL
         url = urlparse(database_url)
@@ -46,13 +43,12 @@ def parse_database_url():
             str(url.port or "5432"),  # Ensure this is a string
             url.path[1:],  # Remove leading slash
         )
-
     # Ensure DB_PORT is never None
     return (
         os.getenv("DB_USER", ""),
         os.getenv("DB_PASSWORD", ""),
         os.getenv("DB_HOST", ""),
-        os.getenv("DB_PORT") or "5432",  # Ensure default value if missing
+        os.getenv("DB_PORT") or "5432",  # Default to 5432 if missing
         os.getenv("DB_NAME", ""),
     )
 
@@ -60,14 +56,16 @@ def build_database_url(user, password, host, port, dbname):
     """Constructs a valid DATABASE_URL while handling empty password cases."""
     password_section = f":{password}" if password else ""
     return f"postgresql://{user}{password_section}@{host}:{port}/{dbname}"
-    
 
 # Get database credentials
 DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME = parse_database_url()
 DATABASE_URL = build_database_url(DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME)
 
 # Debugging: Print database connection details (excluding password)
-print(f"🔹 Connecting to: postgresql://{DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+# (This now only runs when the module is executed directly.)
+if __name__ == '__main__':
+    print(f"🔍 DEBUG: DB_PORT (raw) = {os.getenv('DB_PORT')}")
+    print(f"🔹 Connecting to: {DATABASE_URL}")
 
 # Runtime settings
 MAX_RUNTIME_SECONDS = float(os.getenv("MAX_RUNTIME_SECONDS", "60"))  # Target runtime limit

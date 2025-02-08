@@ -1,5 +1,12 @@
 .PHONY: setup run clean setup-db migrate reset-db lint
 
+# Define DB_* variables by extracting them from your Python settings.
+# With the updated settings, these commands should only output the desired values.
+DB_USER := $(shell poetry run python -c "from core.config import settings; print(settings.DB_USER)")
+DB_HOST := $(shell poetry run python -c "from core.config import settings; print(settings.DB_HOST)")
+DB_PORT := $(shell poetry run python -c "from core.config import settings; print(settings.DB_PORT)")
+DB_NAME := $(shell poetry run python -c "from core.config import settings; print(settings.DB_NAME)")
+
 # Set up the environment and install dependencies using Poetry
 setup:
 	poetry install
@@ -23,7 +30,7 @@ migrate:
 
 # Drop and recreate the database, then apply migrations
 reset-db:
-	psql -U $(DB_USER) -h $(DB_HOST) -d postgres -c "DROP DATABASE IF EXISTS timetraveler;"
+	psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -d postgres -c "DROP DATABASE IF EXISTS $(DB_NAME);"
 	poetry run python scripts/setup_db.py
 
 # Chain linters
