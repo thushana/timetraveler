@@ -1,34 +1,34 @@
-.PHONY: setup run clean setup-db migrate reset-db
+.PHONY: setup run clean setup-db migrate reset-db lint
 
-# Set up virtual environment, install dependencies, and initialize database
+# Set up the environment and install dependencies using Poetry
 setup:
-	python3 -m venv env && . env/bin/activate && pip install -r requirements.txt
-	python scripts/setup_db.py
+	poetry install
+	poetry run python scripts/setup_db.py
 
 # Run the journey cron script in debug mode
 run:
-	bash -c '. env/bin/activate && python -m scripts.journey_cron --debug'
+	poetry run python -m scripts.journey_cron --debug
 
 # Clean up the environment
 clean:
-	rm -rf env
+	rm -rf $(shell poetry env info --path)
 
 # Initialize the database without dropping it
 setup-db:
-	python scripts/setup_db.py
+	poetry run python scripts/setup_db.py
 
 # Apply Alembic migrations
 migrate:
-	alembic upgrade head
+	poetry run alembic upgrade head
 
 # Drop and recreate the database, then apply migrations
 reset-db:
 	psql -U $(DB_USER) -h $(DB_HOST) -d postgres -c "DROP DATABASE IF EXISTS timetraveler;"
-	python scripts/setup_db.py
+	poetry run python scripts/setup_db.py
 
 # Chain linters
 lint:
-	flake8 .
-	black .
-	isort .
-	mypy .
+	poetry run flake8 .
+	poetry run black .
+	poetry run isort .
+	poetry run mypy .
