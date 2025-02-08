@@ -1,12 +1,10 @@
-print(f"🔍 DEBUG: DB_PORT (raw) = {os.getenv('DB_PORT')}")
-print(f"🔍 DEBUG: DATABASE_URL before create_engine = {DATABASE_URL}")
-
-
 import os
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from urllib.parse import urlparse
+
+print(f"🔍 DEBUG: DB_PORT (raw) = {os.getenv('DB_PORT')}")
 
 # Determine environment and load appropriate .env file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -62,6 +60,7 @@ def build_database_url(user, password, host, port, dbname):
     """Constructs a valid DATABASE_URL while handling empty password cases."""
     password_section = f":{password}" if password else ""
     return f"postgresql://{user}{password_section}@{host}:{port}/{dbname}"
+    
 
 # Get database credentials
 DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME = parse_database_url()

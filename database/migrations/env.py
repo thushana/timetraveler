@@ -1,9 +1,8 @@
-# Import os and regex for Heroku compatibility
+# --- Begin changes in env.py ---
 import os
 import re
 from logging.config import fileConfig
 
-# Import Alembic and SQLAlchemy
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
@@ -19,14 +18,16 @@ config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-# Get database URL from environment or alembic.ini
-DATABASE_URL = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+# Instead of reading DATABASE_URL from the environment or alembic.ini,
+# import it from your settings.
+from core.config import settings
+DATABASE_URL = settings.DATABASE_URL
 
-# Convert 'postgres://' to 'postgresql+psycopg2://', required for Heroku
+# If your URL uses the "postgres://" scheme, adjust it to use the proper dialect.
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = re.sub(r"^postgres://", "postgresql+psycopg2://", DATABASE_URL, 1)
 
-# Update Alembic config
+# Update Alembic config with the correct URL.
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Attach the Base metadata
