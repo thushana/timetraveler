@@ -4,11 +4,12 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime
-from typing import List
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
 
 from core.config import settings
 from core.journey.scheduler import JourneyScheduler
+from database.session import get_db  # Adjust path if needed
 
 # Determine if running on Heroku (using the IS_HEROKU flag from settings)
 is_heroku = settings.IS_HEROKU
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_time(seconds: float) -> str:
-    """Format seconds into a detailed time string."""
+    """Format seconds into a readable h/m/s/ms string."""
     hours, remainder = divmod(seconds, 3600)
     minutes, remainder = divmod(remainder, 60)
     secs, milliseconds = divmod(remainder, 1)
@@ -56,40 +57,78 @@ def format_time(seconds: float) -> str:
 
     return " ".join(parts) if parts else "0ms"
 
+def ensure_utc(dt: datetime) -> datetime:
+    """
+    If dt has no tzinfo, assume it's UTC.
+    If it has tzinfo, convert it to UTC.
+    """
+    if dt.tzinfo is None:
+        # Interpret naive datetime as UTC
+        return dt.replace(tzinfo=timezone.utc)
+    else:
+        # Convert from whatever tz to UTC
+        return dt.astimezone(timezone.utc)
+
+def get_last_measurement_timestamp() -> Optional[datetime]:
+    """
+    Return the most recent JourneyMeasurement.created_at as a UTC datetime,
+    or None if no measurements exist.
+    """
+    from database.models.journey_measurement import JourneyMeasurement
+
+    with get_db() as db:
+        last_measurement = (
+            db.query(JourneyMeasurement)
+            .order_by(JourneyMeasurement.created_at.desc())
+            .first()
+        )
+        if last_measurement:
+            return ensure_utc(last_measurement.created_at)
+        return None
 
 def run_scheduler(max_retries: int = 3, retry_delay: int = 5) -> None:
     """
-    Run the journey scheduler with retry logic.
-
-    Args:
-        max_retries: Maximum number of retry attempts.
-        retry_delay: Delay in seconds between retries.
+    Run the journey scheduler, skipping if the last measurement is < 15 minutes old.
+    Retries up to max_retries if there's an exception.
     """
-    # Load configuration from settings
+    # --- Gating logic based on journey_measurements table ---
+    last_run_time = get_last_measurement_timestamp()
+    if last_run_time is not None:
+        now_utc = datetime.now(timezone.utc)  # Aware, in UTC
+        delta = now_utc - last_run_time
+        minutes_since_last_run = delta.total_seconds() / 60
+        if minutes_since_last_run < 15:
+            logger.info(
+                f"Skipping job; last measurement was only {minutes_since_last_run:.1f} minutes ago. "
+                f"Need at least 15 minutes."
+            )
+            return
+    else:
+        logger.info("No prior measurements found; proceeding with the run.")
+
     debug_mode = settings.DEBUG
     max_workers = settings.MAX_WORKERS
 
     attempt = 0
     while attempt < max_retries:
         start_time = time.perf_counter()
-        start_datetime = datetime.now()
+        start_datetime = datetime.now(timezone.utc)
+
         try:
             logger.info(
-                f"Starting journey metrics calculation job at {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}"
+                f"Starting journey metrics calculation job at {start_datetime.isoformat(timespec='milliseconds')}"
             )
-
-            # Initialize the scheduler with configuration from settings/env
             scheduler = JourneyScheduler(debug=debug_mode, max_workers=max_workers)
             scheduler.process_all_journeys()
 
             end_time = time.perf_counter()
             run_time = end_time - start_time
-            end_datetime = datetime.now()
+            end_datetime = datetime.now(timezone.utc)
 
             logger.info("Successfully completed journey metrics calculation job")
             logger.info(f"Total run time: {format_time(run_time)}")
-            logger.info(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
-            logger.info(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+            logger.info(f"Start time: {start_datetime.isoformat(timespec='milliseconds')}")
+            logger.info(f"End time:   {end_datetime.isoformat(timespec='milliseconds')}")
 
             # Optional: Warn if runtime exceeds a target (here, 1 second)
             if run_time > 1:
