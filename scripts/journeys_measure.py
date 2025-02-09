@@ -57,6 +57,7 @@ def format_time(seconds: float) -> str:
 
     return " ".join(parts) if parts else "0ms"
 
+
 def ensure_utc(dt: datetime) -> datetime:
     """
     If dt has no tzinfo, assume it's UTC.
@@ -69,6 +70,7 @@ def ensure_utc(dt: datetime) -> datetime:
         # Convert from whatever tz to UTC
         return dt.astimezone(timezone.utc)
 
+
 def get_last_measurement_timestamp() -> Optional[datetime]:
     """
     Return the most recent JourneyMeasurement.created_at as a UTC datetime,
@@ -77,14 +79,11 @@ def get_last_measurement_timestamp() -> Optional[datetime]:
     from database.models.journey_measurement import JourneyMeasurement
 
     with get_db() as db:
-        last_measurement = (
-            db.query(JourneyMeasurement)
-            .order_by(JourneyMeasurement.created_at.desc())
-            .first()
-        )
-        if last_measurement:
+        last_measurement = db.query(JourneyMeasurement).order_by(JourneyMeasurement.created_at.desc()).first()
+        if last_measurement and isinstance(last_measurement.created_at, datetime):
             return ensure_utc(last_measurement.created_at)
         return None
+
 
 def run_scheduler(max_retries: int = 3, retry_delay: int = 5) -> None:
     """
