@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from dotenv import load_dotenv
+from typing import Tuple
 from urllib.parse import urlparse
+
+from dotenv import load_dotenv
 
 # Determine environment and load appropriate .env file
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -29,9 +31,10 @@ PROCESSED_JOURNEYS_PATH = PROCESSED_DATA_DIR / "journeys_enriched.json"
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "4"))  # Thread pool size
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
+
 # Database settings
-def parse_database_url():
-    """Parse DATABASE_URL if present (Heroku) or return individual components"""
+def parse_database_url() -> Tuple[str, str, str, str, str]:
+    """Parse DATABASE_URL if present (Heroku) or return individual components."""
     database_url = os.getenv("DATABASE_URL")
     if database_url and database_url.startswith("postgres://"):
         # Parse Heroku DATABASE_URL
@@ -52,10 +55,12 @@ def parse_database_url():
         os.getenv("DB_NAME", ""),
     )
 
-def build_database_url(user, password, host, port, dbname):
+
+def build_database_url(user: str, password: str, host: str, port: str, dbname: str) -> str:
     """Constructs a valid DATABASE_URL while handling empty password cases."""
     password_section = f":{password}" if password else ""
     return f"postgresql://{user}{password_section}@{host}:{port}/{dbname}"
+
 
 # Get database credentials
 DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME = parse_database_url()
@@ -63,7 +68,7 @@ DATABASE_URL = build_database_url(DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAM
 
 # Debugging: Print database connection details (excluding password)
 # (This now only runs when the module is executed directly.)
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(f"🔍 DEBUG: DB_PORT (raw) = {os.getenv('DB_PORT')}")
     print(f"🔹 Connecting to: {DATABASE_URL}")
 
@@ -75,12 +80,14 @@ HEROKU_TIMEOUT_MARGIN = float(os.getenv("HEROKU_TIMEOUT_MARGIN", "25"))  # Safet
 for directory in [RAW_DATA_DIR, PROCESSED_DATA_DIR, METRICS_DATA_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-def get_google_maps_api_key():
+
+def get_google_maps_api_key() -> str:
     """Get Google Maps API key from environment variables."""
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_MAPS_API_KEY environment variable is not set")
     return api_key
+
 
 def get_metrics_path(journey_name: str) -> Path:
     """Get the path for storing metrics for a specific journey."""
@@ -93,6 +100,7 @@ def get_metrics_path(journey_name: str) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{journey_name.lower().replace(' ', '_')}_{timestamp}.json"
     return metrics_dir / filename
+
 
 # Environment-specific settings
 IS_HEROKU = "DYNO" in os.environ
