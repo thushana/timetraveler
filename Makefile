@@ -1,4 +1,29 @@
 .PHONY: setup run clean setup-db migrate reset-db lint
+.PHONY: docker-build docker-run docker-stop docker-rebuild docker-logs
+
+# DOCKER
+# Build the Docker image with the name "timetraveler"
+docker-build:
+	docker build -t timetraveler .
+
+# Run the Docker container in detached mode, mapping host port 80 to container port 5000, then open the browser at http://localhost
+docker-run:
+	docker run -d --name timetraveler -p 80:5000 timetraveler
+	@sleep 2  # Wait a moment for the container to start
+	open http://localhost
+
+# Stop and remove the Docker container if it is running
+docker-stop:
+	docker stop timetraveler || true
+	docker rm timetraveler || true
+
+# Rebuild the image and run the container (stopping any existing container first)
+docker-rebuild: docker-stop docker-build docker-run
+
+# Tail the logs of the running Docker container
+docker-logs:
+	docker logs -f timetraveler
+
 
 # Define DB_* variables by extracting them from your Python settings.
 # With the updated settings, these commands should only output the desired values.
