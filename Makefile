@@ -113,6 +113,10 @@ database-recent:
 # DEVELOPMENT
 # ---------------------------------------
 
+# Run the Flask application
+run:
+	poetry run python wsgi.py
+
 # Set up the environment and install dependencies using Poetry
 setup:
 	poetry install
@@ -125,6 +129,12 @@ clean:
 # Chain linters
 lint:
 	poetry run flake8 .
+	poetry run black .
+	poetry run isort .
+	poetry run mypy .
+
+# Chain linters
+lint-quick:
 	poetry run black .
 	poetry run isort .
 	poetry run mypy .
