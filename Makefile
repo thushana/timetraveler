@@ -1,5 +1,5 @@
 .PHONY: setup run clean database-setup database-migrate database-reset lint
-.PHONY: docker-build docker-run docker-stop docker-rebuild docker-logs
+.PHONY: docker-build docker-run docker-stop docker-rebuild docker-logs heroku-config
 
 # DOCKER
 # Build the Docker image with the name "timetraveler"
@@ -72,3 +72,11 @@ lint:
 	poetry run black .
 	poetry run isort .
 	poetry run mypy .
+
+# Push environment variables from .env.production to Heroku
+heroku-config:
+	@set -a && \
+	. .env.production && \
+	for var in $$(cat .env.production | grep -v '^#' | sed 's/=.*//'); do \
+		heroku config:set $$var=$${!var}; \
+	done
