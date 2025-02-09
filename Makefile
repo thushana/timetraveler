@@ -39,11 +39,17 @@ docker-stop:
 	docker rm timetraveler || true
 
 # Rebuild the image and run the container (stopping any existing container first)
-docker-rebuild: docker-stop docker-build docker-run
+database-refresh: database-reset database-setup database-migrate
+	@echo "Database has been refreshed."
 
 # Tail the logs of the running Docker container
 docker-logs:
 	docker logs -f timetraveler
+
+# Remove dangling images and containers
+docker-clean:
+	docker system prune -f
+	@echo "Docker cleaned up."
 
 # ---------------------------------------
 # DATABASE
@@ -84,17 +90,17 @@ database-state:
 	osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null || echo "Google Chrome is not running."
 
 # Fetch most recent rows from a table
-# Usage: make database-recent <table_name> <row_limit>
+# Usage: make database-recent TABLE=<table_name> LIMIT=<row_limit>
 database-recent:
 	@if ! command -v psql &> /dev/null; then \
 		echo "Error: 'psql' is not installed."; \
 		exit 1; \
 	fi; \
-	TABLE_NAME=$$(echo "$@" | awk '{print $$1}'); \
-	ROW_LIMIT=$$(echo "$@" | awk '{print $$2}'); \
+	TABLE_NAME=$(TABLE); \
+	ROW_LIMIT=$(LIMIT); \
 	ROW_LIMIT=$${ROW_LIMIT:-1}; \
 	if [ -z "$$TABLE_NAME" ]; then \
-		echo "Usage: make database-recent <table_name> [row_limit]"; \
+		echo "Usage: make database-recent TABLE=<table_name> [LIMIT=<row_limit>]"; \
 		exit 1; \
 	fi; \
 	QUERY="SELECT json_agg(t) FROM (SELECT * FROM $$TABLE_NAME ORDER BY id DESC LIMIT $$ROW_LIMIT) t;"; \
@@ -108,6 +114,7 @@ database-recent:
 	echo "$$FORMATTED_OUTPUT" | pbcopy; \
 	echo "Most recent $$ROW_LIMIT row(s) from '$$TABLE_NAME' copied to clipboard."; \
 	osascript -e 'tell application "Google Chrome" to activate' 2>/dev/null || echo "Google Chrome is not running."
+
 
 # ---------------------------------------
 # DEVELOPMENT
@@ -139,6 +146,9 @@ lint-quick:
 	poetry run isort .
 	poetry run mypy .
 
+dev-reset: clean setup
+	@echo "Development environment reset and ready to use."
+
 # ---------------------------------------
 # JOURNEYS
 # ---------------------------------------
@@ -160,7 +170,10 @@ journeys-measure:
 
 # Push environment variables from .env.production to Heroku
 heroku-config:
-	@set -a && \
+	@if [ ! -f .env.production ]; then \
+		echo "Error: .env.production file not found."; exit 1; \
+	fi; \
+	set -a && \
 	. .env.production && \
 	for var in $$(cat .env.production | grep -v '^#' | sed 's/=.*//'); do \
 		heroku config:set $$var=$${!var}; \
