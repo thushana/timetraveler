@@ -25,7 +25,6 @@ docker-rebuild: docker-stop docker-build docker-run
 docker-logs:
 	docker logs -f timetraveler
 
-
 # Define DB_* variables by extracting them from your Python settings.
 # With the updated settings, these commands should only output the desired values.
 DB_USER := $(shell poetry run python -c "from core.config import settings; print(settings.DB_USER)")
@@ -41,6 +40,14 @@ setup:
 # Run the journey metrics calculation script in debug mode
 run:
 	poetry run python scripts/journeys_measure.py --debug
+
+# Run the journey setup script (process all journeys and measure)
+journeys-measure:
+	poetry run python -m scripts.journeys_measure --debug
+
+# Run the journey setup script (process journeys file, update database)
+journeys-setup:
+	poetry run python -m scripts.journeys_setup --debug
 
 # Clean up the environment
 clean:
