@@ -5,6 +5,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import List
 
 from core.config import settings
 from core.journey.scheduler import JourneyScheduler
@@ -13,7 +14,7 @@ from core.journey.scheduler import JourneyScheduler
 is_heroku = settings.IS_HEROKU
 
 # Set up logging handlers based on the environment
-log_handlers = []
+log_handlers: List[logging.Handler] = []
 if is_heroku:
     # Heroku logs should go to stdout only.
     log_handlers.append(logging.StreamHandler(sys.stdout))

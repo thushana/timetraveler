@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, Response, jsonify
 
 main = Blueprint("main", __name__)
 
 
 @main.route("/")
-def home():
+def home() -> Response:
     return jsonify({"message": "Welcome to Timetraveler!"})

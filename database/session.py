@@ -1,8 +1,9 @@
 import logging
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Optional
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from core.config import settings
@@ -18,7 +19,7 @@ engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_engine(database_url: str = None):
+def get_engine(database_url: Optional[str] = None) -> Engine:
     """Returns a new SQLAlchemy engine. Required for Alembic migrations."""
     return create_engine(database_url or settings.DATABASE_URL)
 

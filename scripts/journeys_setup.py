@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import List
 
 import googlemaps
 
@@ -17,7 +18,7 @@ from core.config import settings
 from core.journey.processor import JourneyProcessor
 
 # Configure logging similar to journeys_measure.py
-log_handlers = []
+log_handlers: List[logging.Handler] = []
 if settings.IS_HEROKU:
     # On Heroku, log to stdout only.
     log_handlers.append(logging.StreamHandler(sys.stdout))
