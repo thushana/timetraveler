@@ -48,6 +48,7 @@ journeys-measure:
 # Run the journey setup script (process journeys file, update database)
 journeys-setup:
 	scripts/poetry_install.sh
+	PATH="/app/.local/bin:$(PATH)" poetry run python -m scripts.journeys_setup --debug
 	poetry run python -m scripts.journeys_setup --debug
 
 # Clean up the environment
