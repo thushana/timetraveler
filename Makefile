@@ -168,7 +168,7 @@ heroku-config:
 
 # Push the main branch to Heroku and open the app in a browser
 heroku-push:
-	git push heroku main && \
-	URL=$$(git remote -v | grep heroku | awk '{print $$2}' | sed 's/.*https:\/\///;s/.git//') && \
+	git push heroku main | tee /tmp/heroku_push_log && \
+	URL=$$(grep -o 'https://[a-zA-Z0-9.-]*\.herokuapp\.com' /tmp/heroku_push_log | tail -1) && \
 	echo "Opening $$URL..." && \
-	open https://$$URL
+	open $$URL
