@@ -165,3 +165,10 @@ heroku-config:
 	for var in $$(cat .env.production | grep -v '^#' | sed 's/=.*//'); do \
 		heroku config:set $$var=$${!var}; \
 	done
+
+# Push the main branch to Heroku and open the app in a browser
+heroku-push:
+	git push heroku main && \
+	URL=$$(git remote -v | grep heroku | awk '{print $$2}' | sed 's/.*https:\/\///;s/.git//') && \
+	echo "Opening $$URL..." && \
+	open https://$$URL
