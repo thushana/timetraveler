@@ -40,18 +40,14 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Set up the database with journeys to measure using JourneyProcessor"
-    )
+    parser = argparse.ArgumentParser(description="Set up the database with journeys to measure using JourneyProcessor")
     parser.add_argument(
         "--journeys-file",
         type=str,
         default="data/raw/journeys.json",
         help="Path to the journeys JSON file (default: data/raw/journeys.json)",
     )
-    parser.add_argument(
-        "--debug", action="store_true", help="Enable debug mode (overrides settings.DEBUG)"
-    )
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode (overrides settings.DEBUG)")
     args = parser.parse_args()
 
     # Allow command-line override for debug mode.

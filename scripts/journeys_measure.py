@@ -6,8 +6,8 @@ import sys
 import time
 from datetime import datetime
 
-from core.journey.scheduler import JourneyScheduler
 from core.config import settings
+from core.journey.scheduler import JourneyScheduler
 
 # Determine if running on Heroku (using the IS_HEROKU flag from settings)
 is_heroku = settings.IS_HEROKU
@@ -100,9 +100,7 @@ def run_scheduler(max_retries: int = 3, retry_delay: int = 5) -> None:
             attempt += 1
             end_time = time.perf_counter()
             run_time = end_time - start_time
-            logger.error(
-                f"Error during journey metrics calculation job (attempt {attempt}/{max_retries}): {str(e)}"
-            )
+            logger.error(f"Error during journey metrics calculation job (attempt {attempt}/{max_retries}): {str(e)}")
             logger.error(f"Failed after running for: {format_time(run_time)}")
 
             if attempt < max_retries:
