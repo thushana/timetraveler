@@ -1,4 +1,4 @@
-.PHONY: setup run clean setup-db migrate reset-db lint
+.PHONY: setup run clean database-setup database-migrate database-reset lint
 .PHONY: docker-build docker-run docker-stop docker-rebuild docker-logs
 
 # DOCKER
@@ -6,7 +6,8 @@
 docker-build:
 	docker build -t timetraveler .
 
-# Run the Docker container in detached mode, mapping host port 80 to container port 5000, then open the browser at http://localhost
+# Run the Docker container in detached mode, mapping host port 80 to container port 5000,
+# then open the browser at http://localhost
 docker-run:
 	docker run -d --name timetraveler -p 80:5000 timetraveler
 	@sleep 2  # Wait a moment for the container to start
@@ -35,28 +36,28 @@ DB_NAME := $(shell poetry run python -c "from core.config import settings; print
 # Set up the environment and install dependencies using Poetry
 setup:
 	poetry install
-	poetry run python scripts/setup_db.py
+	poetry run python scripts/database_setup.py
 
-# Run the journey cron script in debug mode
+# Run the journey metrics calculation script in debug mode
 run:
-	poetry run python -m scripts.journey_cron --debug
+	poetry run python scripts/journeys_measure.py --debug
 
 # Clean up the environment
 clean:
 	rm -rf $(shell poetry env info --path)
 
 # Initialize the database without dropping it
-setup-db:
-	poetry run python scripts/setup_db.py
+database-setup:
+	poetry run python scripts/database_setup.py
 
 # Apply Alembic migrations
-migrate:
+database-migrate:
 	poetry run alembic upgrade head
 
 # Drop and recreate the database, then apply migrations
-reset-db:
+database-reset:
 	psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -d postgres -c "DROP DATABASE IF EXISTS $(DB_NAME);"
-	poetry run python scripts/setup_db.py
+	poetry run python scripts/database_setup.py
 
 # Chain linters
 lint:

@@ -1,4 +1,3 @@
-# setup_db.py
 import os
 import subprocess
 
