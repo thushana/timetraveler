@@ -170,5 +170,10 @@ heroku-config:
 heroku-push:
 	git push heroku main | tee /tmp/heroku_push_log && \
 	URL=$$(grep -o 'https://[a-zA-Z0-9.-]*\.herokuapp\.com' /tmp/heroku_push_log | tail -1) && \
-	echo "Opening $$URL..." && \
-	open $$URL
+	if [ -n "$$URL" ]; then \
+		echo "Opening $$URL..."; \
+		open $$URL; \
+	else \
+		echo "Error: Could not extract Heroku deployment URL."; \
+		exit 1; \
+	fi
