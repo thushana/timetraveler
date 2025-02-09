@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import cast
 
@@ -17,7 +18,7 @@ class TimeSlot(Base):
     def get_id(cls, db: Session, dt: datetime) -> int:
         hour = dt.hour
         minute = (dt.minute // 15) * 15
-        slot_key = f"{hour:02d}{minute:02d}"
+        slot_key = f"{hour:02d}_{minute:02d}"
 
         if hour < 4:
             period = "overnight"
@@ -34,4 +35,9 @@ class TimeSlot(Base):
 
         slot_key = f"{slot_key}_{period}"
         slot = db.query(cls).filter_by(slot=slot_key).first()
-        return int(slot.id) if slot else 1
+
+        if not slot:
+            logging.warning(f"Time slot key '{slot_key}' not found in the database.")
+            raise ValueError(f"Time slot key '{slot_key}' not found.")
+
+        return int(slot.id)
