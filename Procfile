@@ -1,2 +1,3 @@
 # Procfile
-worker: python measure.py
+web: gunicorn app:app
+worker: python -m scripts.measure
