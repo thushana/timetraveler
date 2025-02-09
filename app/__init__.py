@@ -1,8 +1,12 @@
 from flask import Flask
 
-app = Flask(__name__)
 
+def create_app() -> Flask:
+    app = Flask(__name__)
 
-@app.route("/")
-def home() -> str:
-    return "Welcome to Timetraveler!"
+    # Import and register the blueprint
+    from .routes import main
+
+    app.register_blueprint(main)
+
+    return app

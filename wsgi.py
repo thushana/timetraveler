@@ -1,5 +1,6 @@
-from app import app
+from app import create_app
 
-# Expose the Flask app instance to the WSGI server
+app = create_app()
+
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
