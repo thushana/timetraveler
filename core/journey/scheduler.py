@@ -1,21 +1,19 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import googlemaps
+import pytz
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
 
 from core.config import settings
 from core.journey.calculator import JourneyMetricsCalculator
 from core.journey.reporter import JourneyReporter
 from database.models.journey import Journey
-from database.models.journey_leg import JourneyLeg
 from database.models.journey_measurement import JourneyMeasurement
 from database.models.time_slot import TimeSlot
 from database.models.transit_mode import TransitMode
-from database.models.waypoint import Waypoint
 from database.session import get_db
 
 logger = logging.getLogger(__name__)
@@ -54,8 +52,20 @@ class JourneyScheduler:
         return active_journeys
 
     def save_journey_metrics(self, db: Session, journey: Journey, metrics: Dict[str, Any]) -> None:
+        """
+        Save metrics for a journey, ensuring proper handling of local and UTC timestamps.
+        """
         try:
-            now = datetime.now()
+            now = datetime.now()  # Current timestamp in the server's timezone
+
+            if not journey.timezone:
+                raise ValueError(f"Journey {journey.id} is missing a timezone.")
+
+            local_tz = pytz.timezone(journey.timezone)  # Now guaranteed to be a str
+            local_timestamp = now.astimezone(local_tz)  # Convert `now` to local time for the journey
+
+            if local_timestamp.tzinfo is None:
+                local_timestamp = pytz.utc.localize(local_timestamp)
 
             for mode, mode_data in metrics["modes"].items():
                 transit_mode_id = TransitMode.get_id(db, mode)
@@ -63,15 +73,14 @@ class JourneyScheduler:
                 measurement = JourneyMeasurement(
                     journey_id=journey.id,
                     transit_mode_id=transit_mode_id,
-                    timestamp=now,
-                    local_timestamp=now,
-                    day_of_week_id=now.isoweekday(),
-                    time_slot_id=TimeSlot.get_id(db, now),
+                    local_timestamp=local_timestamp,  # Pass the local time
+                    day_of_week_id=local_timestamp.isoweekday(),
+                    time_slot_id=TimeSlot.get_id(db, local_timestamp),
                     duration_seconds=mode_data["metrics"]["duration_seconds"],
                     distance_meters=mode_data["metrics"]["distance_meters"],
                     speed_kph=mode_data["metrics"]["speed_kph"],
                     raw_response=mode_data,
-                    created_at=now,
+                    journey=journey,  # Pass the journey object for timezone access
                 )
                 db.add(measurement)
 
